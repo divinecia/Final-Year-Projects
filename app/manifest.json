@@ -1,0 +1,44 @@
+{
+  "name": "Househelp Platform",
+  "short_name": "Househelp",
+  "description": "Connecting you to trusted home services in Rwanda",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#225590",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "en",
+  "shortcuts": [
+    {
+      "name": "Find Worker",
+      "short_name": "Find Worker",
+      "description": "Quickly find a household worker",
+      "url": "/household/find-worker",
+      "icons": [{"src": "/icons/icon.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Post Job",
+      "short_name": "Post Job",
+      "description": "Post a new job listing",
+      "url": "/household/post-job",
+      "icons": [{"src": "/icons/icon.png", "sizes": "192x192"}]
+    }
+  ]
+}

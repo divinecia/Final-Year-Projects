@@ -1,0 +1,25 @@
+.progressBar {
+  width: var(--progress-width, 0%);
+}
+
+.progressBar[data-progress="0"] { width: 0%; }
+.progressBar[data-progress="5"] { width: 5%; }
+.progressBar[data-progress="10"] { width: 10%; }
+.progressBar[data-progress="15"] { width: 15%; }
+.progressBar[data-progress="20"] { width: 20%; }
+.progressBar[data-progress="25"] { width: 25%; }
+.progressBar[data-progress="30"] { width: 30%; }
+.progressBar[data-progress="35"] { width: 35%; }
+.progressBar[data-progress="40"] { width: 40%; }
+.progressBar[data-progress="45"] { width: 45%; }
+.progressBar[data-progress="50"] { width: 50%; }
+.progressBar[data-progress="55"] { width: 55%; }
+.progressBar[data-progress="60"] { width: 60%; }
+.progressBar[data-progress="65"] { width: 65%; }
+.progressBar[data-progress="70"] { width: 70%; }
+.progressBar[data-progress="75"] { width: 75%; }
+.progressBar[data-progress="80"] { width: 80%; }
+.progressBar[data-progress="85"] { width: 85%; }
+.progressBar[data-progress="90"] { width: 90%; }
+.progressBar[data-progress="95"] { width: 95%; }
+.progressBar[data-progress="100"] { width: 100%; }

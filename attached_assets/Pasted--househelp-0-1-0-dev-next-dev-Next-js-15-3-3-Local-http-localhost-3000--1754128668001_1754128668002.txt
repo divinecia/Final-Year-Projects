@@ -1,0 +1,72 @@
+
+> househelp@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.3.3
+   - Local:        http://localhost:3000
+   - Network:      http://172.31.100.66:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ⚠ Invalid next.config.ts options detected: 
+ ⚠     Expected string, received object at "allowedDevOrigins[0]"
+ ⚠     Expected string, received object at "allowedDevOrigins[1]"
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ✓ Ready in 2s
+ ○ Compiling / ...
+ ✓ Compiled / in 16.5s (917 modules)
+ GET / 200 in 17412ms
+ ✓ Compiled in 1400ms (370 modules)
+ GET / 200 in 213ms
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+ GET / 200 in 69ms
+ GET / 200 in 74ms
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+ GET / 200 in 71ms
+ GET / 200 in 59ms
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)
+Error handling upgrade request TypeError: pattern.split is not a function
+    at Array.some (<anonymous>)

@@ -1,0 +1,37 @@
+{
+  "name": "HouseHelp Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:18",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-json",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense"
+      ],
+      "settings": {
+        "typescript.preferences.includePackageJsonAutoImports": "on",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "HouseHelp App",
+      "visibility": "public",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "npm install && echo '🚀 HouseHelp setup complete! The app will start automatically.'",
+  "postStartCommand": "npm run dev",
+  "remoteUser": "node"
+}

@@ -1,0 +1,115 @@
+/* Dashboard Analytics Styles */
+.chartContainer {
+  height: 16rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.chartBar {
+  background-color: rgb(59 130 246);
+  width: 100%;
+  border-radius: 0.375rem 0.375rem 0 0;
+  transition: all 0.3s ease;
+  height: var(--bar-height, 20px);
+}
+
+.chartBar[data-height] {
+  height: attr(data-height);
+}
+
+.serviceBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.progressContainer {
+  width: 100%;
+  background-color: rgb(229 231 235);
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.serviceProgressBar {
+  background-color: rgb(59 130 246);
+  height: 0.5rem;
+  border-radius: 9999px;
+  width: var(--progress-width, 0%);
+}
+
+.serviceProgressBar[data-width] {
+  width: attr(data-width);
+}
+
+.visitorProgressContainer {
+  width: 6rem;
+  background-color: rgb(229 231 235);
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.visitorProgressBar {
+  background-color: rgb(59 130 246);
+  height: 0.5rem;
+  border-radius: 9999px;
+  width: var(--visitor-width, 0%);
+}
+
+.visitorProgressBar[data-width] {
+  width: attr(data-width);
+}
+
+.ratingProgressContainer {
+  flex: 1;
+  background-color: rgb(229 231 235);
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.ratingProgressBar {
+  background-color: rgb(234 179 8);
+  height: 0.5rem;
+  border-radius: 9999px;
+  width: var(--rating-width, 0%);
+}
+
+.ratingProgressBar[data-width] {
+  width: attr(data-width);
+}
+
+/* Dynamic chart bar styles */
+.dynamicChartBar {
+  background-color: rgb(59 130 246);
+  width: 100%;
+  border-radius: 0.375rem 0.375rem 0 0;
+  transition: all 0.3s ease;
+  min-height: 8px;
+  height: var(--bar-height, 8px);
+}
+
+/* Dynamic progress bar styles */
+.dynamicServiceProgress {
+  background-color: rgb(59 130 246);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  width: var(--progress-width, 0%);
+}
+
+.dynamicVisitorProgress {
+  background-color: rgb(59 130 246);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  width: var(--visitor-width, 0%);
+}
+
+.dynamicRatingProgress {
+  background-color: rgb(234 179 8);
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  width: var(--rating-width, 0%);
+}

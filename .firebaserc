@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "househelp-42493",
+    "production": "househelp-42493",
+    "staging": "househelp-staging-id",
+    "development": "househelp-dev-id"
+  }
+}

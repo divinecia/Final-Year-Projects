@@ -1,0 +1,17 @@
+rules_version = '2';
+
+/**
+ * TEMPORARY Firestore Security Rules for SEEDING ONLY
+ * ⚠️  WARNING: These rules allow unauthenticated access!
+ * ⚠️  Only use for initial data seeding in development
+ * ⚠️  Restore the original rules immediately after seeding
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Temporarily allow all reads and writes for seeding
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
