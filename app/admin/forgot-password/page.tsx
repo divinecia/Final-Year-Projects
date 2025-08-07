@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Mail, Phone as PhoneIcon, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function AdminForgotPasswordPage() {
-  const [method, setMethod] = useState<'email' | 'phone'>('email');
+  const [method, setMethod] = useState<'email' | 'phone'>('phone');
   const [value, setValue] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -13,8 +13,10 @@ export default function AdminForgotPasswordPage() {
   // Basic validation for email and phone
   const validateInput = () => {
     if (method === 'email') {
-      // Simple email regex
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      // Simple email regex and check if it matches admin email
+      const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      // We'll let the server validate the admin email for security
+      return isValidFormat;
     } else {
       // Simple phone regex (10-15 digits)
       return /^\d{10,15}$/.test(value.replace(/\D/g, ''));
@@ -61,17 +63,6 @@ export default function AdminForgotPasswordPage() {
       <fieldset className="mb-6">
         <legend className="sr-only">Choose password reset method</legend>
         <div className="flex gap-2">
-          <label className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium border transition-colors duration-150 cursor-pointer ${method === 'email' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}>
-            <input
-              type="radio"
-              name="resetMethod"
-              value="email"
-              checked={method === 'email'}
-              onChange={() => { setMethod('email'); setValue(''); setError(''); setMessage(''); }}
-              className="sr-only"
-            />
-            <Mail className="w-5 h-5" /> Email
-          </label>
           <label className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium border transition-colors duration-150 cursor-pointer ${method === 'phone' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}>
             <input
               type="radio"
@@ -83,29 +74,40 @@ export default function AdminForgotPasswordPage() {
             />
             <PhoneIcon className="w-5 h-5" /> Phone
           </label>
+          <label className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium border transition-colors duration-150 cursor-pointer ${method === 'email' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}>
+            <input
+              type="radio"
+              name="resetMethod"
+              value="email"
+              checked={method === 'email'}
+              onChange={() => { setMethod('email'); setValue(''); setError(''); setMessage(''); }}
+              className="sr-only"
+            />
+            <Mail className="w-5 h-5" /> Email
+          </label>
         </div>
       </fieldset>
       <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
         <label className="block">
           <span className="block mb-1 font-semibold text-gray-700">
-            {method === 'email' ? 'Admin Email' : 'Admin Phone'}
+            {method === 'phone' ? 'Admin Phone' : 'Admin Email'}
           </span>
           <div className="relative">
             <input
-              type={method === 'email' ? 'email' : 'tel'}
+              type={method === 'phone' ? 'tel' : 'email'}
               className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg pr-12 transition-all"
-              placeholder={method === 'email' ? 'Enter your admin email' : 'Enter your admin phone'}
+              placeholder={method === 'phone' ? 'Enter your admin phone' : 'Enter your admin email'}
               value={value}
               onChange={e => setValue(e.target.value)}
               required
               autoFocus
-              inputMode={method === 'email' ? 'email' : 'tel'}
-              pattern={method === 'email' ? undefined : '\\d{10,15}'}
+              inputMode={method === 'phone' ? 'tel' : 'email'}
+              pattern={method === 'phone' ? '\\d{10,15}' : undefined}
               disabled={loading}
-              aria-label={method === 'email' ? 'Admin Email' : 'Admin Phone'}
+              aria-label={method === 'phone' ? 'Admin Phone' : 'Admin Email'}
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-              {method === "email" ? <Mail className="w-5 h-5" /> : <PhoneIcon className="w-5 h-5" />}
+              {method === "phone" ? <PhoneIcon className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
             </span>
           </div>
         </label>

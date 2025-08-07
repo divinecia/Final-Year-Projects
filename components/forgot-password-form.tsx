@@ -34,8 +34,8 @@ export default function ForgotPasswordForm() {
         required
       />
       <button type="submit">Send Reset Email</button>
-      {message && <div style={{ color: "green" }}>{message}</div>}
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {message && <div className="text-green-600">{message}</div>}
+      {error && <div className="text-red-600">{error}</div>}
     </form>
   );
 }
