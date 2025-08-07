@@ -26,7 +26,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAuthenticated() && exists(/databases/$(database)/documents/admin/$(request.auth.uid));
     }
 
     function isParticipantInConversation(conversationData) {
@@ -77,8 +77,8 @@ service cloud.firestore {
       }
     }
 
-    // --- Admins Collection ---
-    match /admins/{adminId} {
+    // --- Admin Collection ---
+    match /admin/{adminId} {
       allow read: if isAuthenticated() && request.auth.uid == adminId;
       allow create: if true; // Temporarily allow for seeding
       allow delete: if false; // Only server-side
