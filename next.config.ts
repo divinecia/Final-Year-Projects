@@ -1,4 +1,7 @@
-const nextConfig = {
+import { NextConfig } from 'next'
+import path from 'path'
+
+const nextConfig: NextConfig = {
   // Essential optimizations only
   compress: true,
   poweredByHeader: false,
@@ -8,6 +11,9 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   serverExternalPackages: ["@google-cloud/storage"],
+  
+  // Enable transpilation for better module resolution
+  transpilePackages: [],
   
   // Configure allowed dev origins for Replit
   ...(process.env.NODE_ENV === 'development' && {
@@ -50,40 +56,6 @@ const nextConfig = {
       }
     ],
   },  
-  // Webpack optimizations with handlebars warning suppression
-  webpack: (config: import('webpack').Configuration, { isServer }: { isServer: boolean }) => {
-    // Handle handlebars warnings and node.js compatibility
-    if (!isServer) {
-      config.resolve = config.resolve || {};
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'handlebars': false,
-      };
-      
-      // Add fallback for node.js modules
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'fs': false,
-        'path': false,
-        'os': false,
-        'util': false,
-      };
-    }
-
-    // Ignore handlebars warnings
-    config.ignoreWarnings = [
-      {
-        module: /handlebars/,
-        message: /require\.extensions/,
-      },
-      {
-        module: /handlebars/,
-        message: /not supported by webpack/,
-      }
-    ];
-
-    return config;
-  },
   
   // Headers for security
   async headers() {
@@ -107,6 +79,53 @@ const nextConfig = {
       },
     ];
   },
+  
+  // Webpack configuration for both warnings suppression and path resolution
+  webpack: (config: import('webpack').Configuration, { isServer }: { isServer: boolean }) => {
+    // Handle handlebars warnings and node.js compatibility
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'handlebars': false,
+      };
+      
+      // Add fallback for node.js modules
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'fs': false,
+        'path': false,
+        'os': false,
+        'util': false,
+      };
+    }
+
+    // Add explicit path resolution for Vercel
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname),
+      '@/components': path.resolve(__dirname, 'components'),
+      '@/lib': path.resolve(__dirname, 'lib'),
+      '@/hooks': path.resolve(__dirname, 'hooks'),
+      '@/app': path.resolve(__dirname, 'app'),
+    };
+
+    // Suppress handlebars warnings
+    config.ignoreWarnings = config.ignoreWarnings || [];
+    config.ignoreWarnings.push(
+      {
+        module: /handlebars/,
+        message: /require\.extensions/,
+      },
+      {
+        module: /handlebars/,
+        message: /not supported by webpack/,
+      }
+    );
+
+    return config;
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

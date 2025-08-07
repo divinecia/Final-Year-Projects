@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
   SidebarGroup,
-} from "@/components/ui/sidebar"
+} from "../../../components/ui/sidebar"
 import {
   Home,
   Briefcase,
@@ -26,11 +26,11 @@ import {
   HardHat,
   Building2,
 } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogoWithName } from "@/components/logo"
+import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
+import { LogoWithName } from "../../../components/logo"
 import { usePathname, useRouter } from "next/navigation"
-import { signOut } from "@/lib/auth"
-import { useToast } from "@/hooks/use-toast"
+import { signOut } from "../../../lib/auth"
+import { useToast } from "../../../hooks/use-toast"
 
 type MenuItem = {
   href: string
