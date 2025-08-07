@@ -1,22 +1,174 @@
-rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp Application * Ensures robust data security, proper authentication, and role-based access control * Covers all collections with proper validation and edge case handling */service cloud.firestore {  match /databases/{database}/documents {    // ===== HELPER FUNCTIONS =====        // Authentication helpers    function isAuthenticated() {      return request.auth != null && request.auth.uid != null;    }    function isOwner(userId) {      return isAuthenticated() && request.auth.uid == userId;    }    function isWorker() {      return isAuthenticated() &&              exists(/databases/$(database)/documents/workers/$(request.auth.uid));    }    function isHousehold() {      return isAuthenticated() &&              exists(/databases/$(database)/documents/households/$(request.auth.uid));    }    function isAdmin() {      return isAuthenticated() &&              exists(/databases/$(database)/documents/admin/$(request.auth.uid));    }    function getUserRole() {      return isAdmin() ? 'admin' :              isWorker() ? 'worker' :              isHousehold() ? 'household' :              'none';    }    // Conversation helpers    function isParticipantInConversation(conversationData) {      return isAuthenticated() &&              'participants' in conversationData &&              conversationData.participants is list &&             request.auth.uid in conversationData.participants;    }    function canAccessConversation(conversationId) {      return exists(/databases/$(database)/documents/conversations/$(conversationId)) &&             isParticipantInConversation(get(/databases/$(database)/documents/conversations/$(conversationId)).data);    }    // Validation helpers    function isValidTimestamp(ts) {      return ts is timestamp;    }    function isValidEmail(email) {      return email is string &&              email.size() > 0 &&              email.size() <= 254 &&             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');    }    function isValidPhone(phone) {      return phone is string &&              phone.size() >= 7 &&              phone.size() <= 20 &&             phone.matches('^\\+?[0-9\\-\\(\\)\\s]{7,20}$');    }    function isValidString(str, minLen, maxLen) {      return str is string &&              str.size() >= minLen &&              str.size() <= maxLen;    }    function isValidNumber(num, minVal, maxVal) {      return num is number &&              num >= minVal &&              num <= maxVal;    }    function isValidPrice(price) {      return price is number &&              price >= 0 &&              price <= 1000000; // Max price of 1M RWF    }    function isValidRating(rating) {      return rating is number &&              rating >= 1 &&              rating <= 5 &&              rating == int(rating); // Must be integer    }    function isValidStatus(status, allowedStatuses) {      return status is string &&              status in allowedStatuses;    }    // Location validation    function isValidLocation(location) {      return location is map &&             'district' in location &&             'sector' in location &&             'cell' in location &&             location.district is string &&             location.sector is string &&             location.cell is string &&             location.district.size() > 0 &&             location.sector.size() > 0 &&             location.cell.size() > 0;    }    // Service validation    function isValidServices(services) {      return services is list &&             services.size() > 0 &&             services.size() <= 20; // Max 20 services per worker    }    // ===== COLLECTION RULES =====    // --- Workers Collection ---    match /workers/{workerId} {      allow read: if isAuthenticated();      allow create: if isOwner(workerId) && isValidWorkerData() && !exists(/databases/$(database)/documents/workers/$(workerId));      allow update: if isOwner(workerId) && isValidWorkerUpdate();      allow delete: if (isOwner(workerId) || isAdmin()) && canDeleteWorker();      function isValidWorkerData() {        let data = request.resource.data;        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt']) &&               isValidString(data.fullName, 2, 100) &&               isValidEmail(data.email) &&               isValidPhone(data.phone) &&               isValidServices(data.services) &&               isValidLocation(data.location) &&               isValidTimestamp(data.dateOfBirth) &&               data.gender in ['male', 'female', 'other'] &&               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&               isValidTimestamp(data.createdAt) &&               data.createdAt == request.time &&               // Optional fields validation               (!('bio' in data) || isValidString(data.bio, 0, 1000)) &&               (!('experience' in data) || (data.experience is number && data.experience >= 0 && data.experience <= 50)) &&               (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&               (!('totalReviews' in data) || (data.totalReviews is number && data.totalReviews >= 0)) &&               (!('isVerified' in data) || data.isVerified is bool) &&               (!('languages' in data) || (data.languages is list && data.languages.size() <= 10)) &&               (!('availability' in data) || data.availability is map) &&               (!('profilePictureUrl' in data) || isValidString(data.profilePictureUrl, 0, 500)) &&               (!('documentsUploaded' in data) || data.documentsUploaded is bool);      }      function isValidWorkerUpdate() {        let data = request.resource.data;        let existingData = resource.data;        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt', 'updatedAt']) &&               isValidString(data.fullName, 2, 100) &&               isValidEmail(data.email) &&               isValidPhone(data.phone) &&               isValidServices(data.services) &&               isValidLocation(data.location) &&               isValidTimestamp(data.dateOfBirth) &&               data.gender in ['male', 'female', 'other'] &&               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&               isValidTimestamp(data.updatedAt) &&               data.updatedAt == request.time &&               data.createdAt == existingData.createdAt && // Cannot change creation time               // Status change restrictions               (isAdmin() || (data.status != 'suspended' && existingData.status != 'suspended'));      }      function canDeleteWorker() {        return !exists(/databases/$(database)/documents/bookings) ||                !existsAfterCurrentDocument(/databases/$(database)/documents/bookings) ||               isAdmin();      }      // Worker subcollections      match /documents/{documentId} {        allow read, write: if isOwner(workerId) || isAdmin();      }      match /availability/{availabilityId} {        allow read: if isAuthenticated();        allow write: if isOwner(workerId);      }    }    // --- Households Collection ---    match /households/{householdId} {      allow read: if isAuthenticated();      allow create: if isOwner(householdId) && isValidHouseholdData() && !exists(/databases/$(database)/documents/households/$(householdId));      allow update: if isOwner(householdId) && isValidHouseholdUpdate();      allow delete: if (isOwner(householdId) || isAdmin()) && canDeleteHousehold();      function isValidHouseholdData() {        let data = request.resource.data;        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt']) &&               isValidString(data.fullName, 2, 100) &&               isValidEmail(data.email) &&               isValidPhone(data.phone) &&               isValidLocation(data.location) &&               data.status in ['active', 'inactive', 'suspended'] &&               isValidTimestamp(data.createdAt) &&               data.createdAt == request.time &&               // Optional fields validation               (!('profilePictureUrl' in data) || isValidString(data.profilePictureUrl, 0, 500)) &&               (!('householdSize' in data) || (data.householdSize is number && data.householdSize >= 1 && data.householdSize <= 50)) &&               (!('preferredLanguage' in data) || isValidString(data.preferredLanguage, 2, 10)) &&               (!('isVerified' in data) || data.isVerified is bool);      }      function isValidHouseholdUpdate() {        let data = request.resource.data;        let existingData = resource.data;        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt', 'updatedAt']) &&               isValidString(data.fullName, 2, 100) &&               isValidEmail(data.email) &&               isValidPhone(data.phone) &&               isValidLocation(data.location) &&               data.status in ['active', 'inactive', 'suspended'] &&               isValidTimestamp(data.updatedAt) &&               data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt &&
-               // Status change restrictions
-               (isAdmin() || (data.status != 'suspended' && existingData.status != 'suspended'));
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Authentication helpers
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isWorker() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/workers/$(request.auth.uid));
+    }
+
+    function isHousehold() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/households/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/admin/$(request.auth.uid));
+    }
+
+    // Validation helpers
+    function isValidEmail(email) {
+      return email is string && 
+             email.size() > 0 && 
+             email.size() <= 254 &&
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidPhone(phone) {
+      return phone is string && 
+             phone.size() >= 7 && 
+             phone.size() <= 20 &&
+             phone.matches('^\\+?[0-9\\-\\(\\)\\s]{7,20}$');
+    }
+
+    function isValidString(str, minLen, maxLen) {
+      return str is string && 
+             str.size() >= minLen && 
+             str.size() <= maxLen;
+    }
+
+    function isValidPrice(price) {
+      return price is number && 
+             price >= 0 && 
+             price <= 1000000;
+    }
+
+    function isValidRating(rating) {
+      return rating is number && 
+             rating >= 1 && 
+             rating <= 5 && 
+             rating == int(rating);
+    }
+
+    function isValidLocation(location) {
+      return location is map &&
+             'district' in location &&
+             'sector' in location &&
+             'cell' in location &&
+             location.district is string &&
+             location.sector is string &&
+             location.cell is string &&
+             location.district.size() > 0 &&
+             location.sector.size() > 0 &&
+             location.cell.size() > 0;
+    }
+
+    function isValidServices(services) {
+      return services is list &&
+             services.size() > 0 &&
+             services.size() <= 20;
+    }
+
+    // Workers Collection
+    match /workers/{workerId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(workerId) && isValidWorkerData();
+      allow update: if isOwner(workerId) && isValidWorkerUpdate();
+      allow delete: if isOwner(workerId) || isAdmin();
+
+      function isValidWorkerData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidServices(data.services) &&
+               isValidLocation(data.location) &&
+               data.dateOfBirth is timestamp &&
+               data.gender in ['male', 'female', 'other'] &&
+               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
       }
 
-      function canDeleteHousehold() {
-        return !exists(/databases/$(database)/documents/jobs) || 
-               !existsAfterCurrentDocument(/databases/$(database)/documents/jobs) ||
-               isAdmin();
+      function isValidWorkerUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt', 'updatedAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidServices(data.services) &&
+               isValidLocation(data.location) &&
+               data.dateOfBirth is timestamp &&
+               data.gender in ['male', 'female', 'other'] &&
+               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+
+      match /documents/{documentId} {
+        allow read, write: if isOwner(workerId) || isAdmin();
+      }
+
+      match /availability/{availabilityId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(workerId);
       }
     }
 
-    // --- Admin Collection ---
+    // Households Collection
+    match /households/{householdId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(householdId) && isValidHouseholdData();
+      allow update: if isOwner(householdId) && isValidHouseholdUpdate();
+      allow delete: if isOwner(householdId) || isAdmin();
+
+      function isValidHouseholdData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidLocation(data.location) &&
+               data.status in ['active', 'inactive', 'suspended'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+
+      function isValidHouseholdUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt', 'updatedAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidLocation(data.location) &&
+               data.status in ['active', 'inactive', 'suspended'] &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+    }
+
+    // Admin Collection
     match /admin/{adminId} {
       allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
       allow create: if isAuthenticated() && isOwner(adminId) && isValidAdminData();
       allow update: if isOwner(adminId) && isValidAdminUpdate();
-      allow delete: if false; // Admins cannot be deleted via client
+      allow delete: if false;
 
       function isValidAdminData() {
         let data = request.resource.data;
@@ -25,7 +177,7 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidEmail(data.email) &&
                data.role in ['super_admin', 'admin', 'moderator'] &&
                data.status in ['active', 'inactive'] &&
-               isValidTimestamp(data.createdAt) &&
+               data.createdAt is timestamp &&
                data.createdAt == request.time;
       }
 
@@ -37,15 +189,13 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidEmail(data.email) &&
                data.role in ['super_admin', 'admin', 'moderator'] &&
                data.status in ['active', 'inactive'] &&
-               isValidTimestamp(data.updatedAt) &&
+               data.updatedAt is timestamp &&
                data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt &&
-               // Only super_admin can change roles
-               (data.role == existingData.role || (existingData.role == 'super_admin'));
+               data.createdAt == existingData.createdAt;
       }
     }
 
-    // --- Jobs Collection ---
+    // Jobs Collection
     match /jobs/{jobId} {
       allow read: if isAuthenticated();
       allow create: if isHousehold() && isValidJobData();
@@ -62,14 +212,8 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                data.status == 'open' &&
                isValidLocation(data.location) &&
                isValidPrice(data.budget) &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time &&
-               // Optional fields validation
-               (!('scheduledDate' in data) || isValidTimestamp(data.scheduledDate)) &&
-               (!('duration' in data) || (data.duration is number && data.duration > 0 && data.duration <= 24)) &&
-               (!('urgency' in data) || data.urgency in ['low', 'medium', 'high']) &&
-               (!('requirements' in data) || (data.requirements is list && data.requirements.size() <= 20)) &&
-               (!('applicants' in data) || (data.applicants is list && data.applicants.size() == 0));
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
       }
 
       function isValidJobUpdate() {
@@ -80,35 +224,22 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidString(data.description, 10, 2000) &&
                isValidString(data.serviceType, 2, 100) &&
                data.householdId == existingData.householdId &&
-               isValidStatus(data.status, ['open', 'in_progress', 'completed', 'cancelled']) &&
+               data.status in ['open', 'in_progress', 'completed', 'cancelled'] &&
                isValidLocation(data.location) &&
                isValidPrice(data.budget) &&
-               isValidTimestamp(data.updatedAt) &&
+               data.updatedAt is timestamp &&
                data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt &&
-               // Status transition validation
-               isValidStatusTransition(existingData.status, data.status) &&
-               // Worker assignment validation
-               (!('assignedWorkerId' in data) || (data.assignedWorkerId is string && isWorker()));
+               data.createdAt == existingData.createdAt;
       }
 
       function canUpdateJob() {
-        let data = request.resource.data;
         return isOwner(resource.data.householdId) || 
-               (isWorker() && 'assignedWorkerId' in data && data.assignedWorkerId == request.auth.uid) ||
+               (isWorker() && 'assignedWorkerId' in resource.data && resource.data.assignedWorkerId == request.auth.uid) ||
                isAdmin();
       }
 
       function canDeleteJob() {
         return resource.data.status in ['open', 'cancelled'] || isAdmin();
-      }
-
-      function isValidStatusTransition(oldStatus, newStatus) {
-        return (oldStatus == 'open' && newStatus in ['in_progress', 'cancelled']) ||
-               (oldStatus == 'in_progress' && newStatus in ['completed', 'cancelled']) ||
-               (oldStatus == 'completed' && newStatus == 'completed') ||
-               (oldStatus == 'cancelled' && newStatus == 'cancelled') ||
-               isAdmin();
       }
 
       // Job applications subcollection
@@ -130,7 +261,7 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                  data.status == 'pending' &&
                  isValidPrice(data.proposedPrice) &&
                  isValidString(data.message, 10, 1000) &&
-                 isValidTimestamp(data.createdAt) &&
+                 data.createdAt is timestamp &&
                  data.createdAt == request.time;
         }
 
@@ -142,7 +273,7 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
       }
     }
 
-    // --- Bookings Collection ---
+    // Bookings Collection
     match /bookings/{bookingId} {
       allow read: if canAccessBooking();
       allow create: if isAuthenticated() && isValidBookingData();
@@ -163,12 +294,11 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidString(data.householdId, 1, 100) &&
                isValidString(data.workerId, 1, 100) &&
                data.status == 'pending' &&
-               isValidTimestamp(data.scheduledDate) &&
+               data.scheduledDate is timestamp &&
                data.scheduledDate > request.time &&
                isValidPrice(data.estimatedPrice) &&
-               isValidTimestamp(data.createdAt) &&
+               data.createdAt is timestamp &&
                data.createdAt == request.time &&
-               // Verify the user is authorized to create this booking
                (request.auth.uid == data.householdId || request.auth.uid == data.workerId);
       }
 
@@ -179,13 +309,12 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                data.jobId == existingData.jobId &&
                data.householdId == existingData.householdId &&
                data.workerId == existingData.workerId &&
-               isValidStatus(data.status, ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']) &&
-               isValidTimestamp(data.scheduledDate) &&
+               data.status in ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] &&
+               data.scheduledDate is timestamp &&
                isValidPrice(data.estimatedPrice) &&
-               isValidTimestamp(data.updatedAt) &&
+               data.updatedAt is timestamp &&
                data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt &&
-               isValidBookingStatusTransition(existingData.status, data.status);
+               data.createdAt == existingData.createdAt;
       }
 
       function canUpdateBooking() {
@@ -197,90 +326,9 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
       function canDeleteBooking() {
         return resource.data.status in ['pending', 'cancelled'] || isAdmin();
       }
-
-      function isValidBookingStatusTransition(oldStatus, newStatus) {
-        return (oldStatus == 'pending' && newStatus in ['confirmed', 'cancelled']) ||
-               (oldStatus == 'confirmed' && newStatus in ['in_progress', 'cancelled']) ||
-               (oldStatus == 'in_progress' && newStatus in ['completed', 'cancelled']) ||
-               (oldStatus == 'completed' && newStatus == 'completed') ||
-               (oldStatus == 'cancelled' && newStatus == 'cancelled') ||
-               isAdmin();
-      }
     }
 
-    // --- Conversations Collection ---
-    match /conversations/{conversationId} {
-      allow read: if isAuthenticated() && isParticipantInConversation(resource.data);
-      allow create: if isAuthenticated() && isValidConversationData();
-      allow update: if isAuthenticated() && isParticipantInConversation(resource.data) && isValidConversationUpdate();
-      allow delete: if isAdmin();
-
-      function isValidConversationData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['participants', 'createdAt', 'lastMessageAt']) &&
-               data.participants is list &&
-               data.participants.size() == 2 &&
-               request.auth.uid in data.participants &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time &&
-               isValidTimestamp(data.lastMessageAt) &&
-               // Verify both participants exist and are different roles
-               data.participants[0] != data.participants[1];
-      }
-
-      function isValidConversationUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['participants', 'createdAt', 'lastMessageAt', 'updatedAt']) &&
-               data.participants == existingData.participants &&
-               data.createdAt == existingData.createdAt &&
-               isValidTimestamp(data.lastMessageAt) &&
-               isValidTimestamp(data.updatedAt) &&
-               data.updatedAt == request.time;
-      }
-    }
-
-    // --- Messages Collection ---
-    match /messages/{messageId} {
-      allow read: if isAuthenticated() && canAccessMessage();
-      allow create: if isAuthenticated() && isValidMessageData();
-      allow update: if isOwner(resource.data.senderId) && isValidMessageUpdate();
-      allow delete: if isOwner(resource.data.senderId) || isAdmin();
-
-      function canAccessMessage() {
-        return 'conversationId' in resource.data &&
-               canAccessConversation(resource.data.conversationId);
-      }
-
-      function isValidMessageData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['conversationId', 'senderId', 'content', 'timestamp', 'type']) &&
-               isValidString(data.conversationId, 1, 100) &&
-               data.senderId == request.auth.uid &&
-               isValidString(data.content, 1, 5000) &&
-               isValidTimestamp(data.timestamp) &&
-               data.timestamp == request.time &&
-               data.type in ['text', 'image', 'document'] &&
-               canAccessConversation(data.conversationId) &&
-               (!('readBy' in data) || (data.readBy is list && data.readBy.size() <= 2)) &&
-               (!('attachmentUrl' in data) || isValidString(data.attachmentUrl, 0, 500));
-      }
-
-      function isValidMessageUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['conversationId', 'senderId', 'content', 'timestamp', 'type', 'updatedAt']) &&
-               data.conversationId == existingData.conversationId &&
-               data.senderId == existingData.senderId &&
-               isValidString(data.content, 1, 5000) &&
-               data.timestamp == existingData.timestamp &&
-               data.type == existingData.type &&
-               isValidTimestamp(data.updatedAt) &&
-               data.updatedAt == request.time;
-      }
-    }
-
-    // --- Reviews Collection ---
+    // Reviews Collection
     match /reviews/{reviewId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidReviewData();
@@ -295,9 +343,8 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidString(data.workerId, 1, 100) &&
                isValidRating(data.rating) &&
                isValidString(data.comment, 5, 2000) &&
-               isValidTimestamp(data.createdAt) &&
+               data.createdAt is timestamp &&
                data.createdAt == request.time &&
-               // Verify booking exists and is completed
                exists(/databases/$(database)/documents/bookings/$(data.bookingId)) &&
                get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.status == 'completed' &&
                get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.householdId == request.auth.uid;
@@ -313,215 +360,27 @@ rules_version = '2';/** * Comprehensive Firestore Security Rules for HouseHelp A
                isValidRating(data.rating) &&
                isValidString(data.comment, 5, 2000) &&
                data.createdAt == existingData.createdAt &&
-               isValidTimestamp(data.updatedAt) &&
+               data.updatedAt is timestamp &&
                data.updatedAt == request.time;
       }
     }
 
-    // --- Payments Collection ---
-    match /payments/{paymentId} {
-      allow read: if canAccessPayment();
-      allow create: if isAuthenticated() && isValidPaymentData();
-      allow update: if canUpdatePayment() && isValidPaymentUpdate();
-      allow delete: if isAdmin();
-
-      function canAccessPayment() {
-        return isAuthenticated() &&
-               (request.auth.uid == resource.data.householdId ||
-                request.auth.uid == resource.data.workerId ||
-                isAdmin());
-      }
-
-      function isValidPaymentData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'amount', 'status', 'paymentMethod', 'createdAt']) &&
-               isValidString(data.bookingId, 1, 100) &&
-               isValidString(data.householdId, 1, 100) &&
-               isValidString(data.workerId, 1, 100) &&
-               isValidPrice(data.amount) &&
-               data.status == 'pending' &&
-               data.paymentMethod in ['cash', 'mobile_money', 'bank_transfer', 'card'] &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time &&
-               // Verify booking exists and user is authorized
-               exists(/databases/$(database)/documents/bookings/$(data.bookingId)) &&
-               (request.auth.uid == data.householdId || request.auth.uid == data.workerId);
-      }
-
-      function isValidPaymentUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'amount', 'status', 'paymentMethod', 'createdAt', 'updatedAt']) &&
-               data.bookingId == existingData.bookingId &&
-               data.householdId == existingData.householdId &&
-               data.workerId == existingData.workerId &&
-               data.amount == existingData.amount &&
-               isValidStatus(data.status, ['pending', 'processing', 'completed', 'failed', 'refunded']) &&
-               data.paymentMethod == existingData.paymentMethod &&
-               data.createdAt == existingData.createdAt &&
-               isValidTimestamp(data.updatedAt) &&
-               data.updatedAt == request.time &&
-               isValidPaymentStatusTransition(existingData.status, data.status);
-      }
-
-      function canUpdatePayment() {
-        return isOwner(resource.data.householdId) ||
-               isOwner(resource.data.workerId) ||
-               isAdmin();
-      }
-
-      function isValidPaymentStatusTransition(oldStatus, newStatus) {
-        return (oldStatus == 'pending' && newStatus in ['processing', 'failed']) ||
-               (oldStatus == 'processing' && newStatus in ['completed', 'failed']) ||
-               (oldStatus == 'completed' && newStatus in ['completed', 'refunded']) ||
-               (oldStatus == 'failed' && newStatus == 'failed') ||
-               (oldStatus == 'refunded' && newStatus == 'refunded') ||
-               isAdmin();
-      }
-    }
-
-    // --- Notifications Collection ---
-    match /notifications/{notificationId} {
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isValidNotificationCreation() && isValidNotificationData();
-      allow update: if isOwner(resource.data.userId) && isValidNotificationUpdate();
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
-
-      function isValidNotificationCreation() {
-        return isOwner(request.resource.data.userId) || isAdmin();
-      }
-
-      function isValidNotificationData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['userId', 'title', 'message', 'type', 'status', 'createdAt']) &&
-               isValidString(data.userId, 1, 100) &&
-               isValidString(data.title, 1, 200) &&
-               isValidString(data.message, 1, 1000) &&
-               data.type in ['job_application', 'booking_confirmed', 'booking_completed', 'payment_received', 'message_received', 'system', 'review_received'] &&
-               data.status in ['unread', 'read'] &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time &&
-               (!('actionUrl' in data) || isValidString(data.actionUrl, 0, 500)) &&
-               (!('metadata' in data) || data.metadata is map);
-      }
-
-      function isValidNotificationUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['userId', 'title', 'message', 'type', 'status', 'createdAt', 'updatedAt']) &&
-               data.userId == existingData.userId &&
-               data.title == existingData.title &&
-               data.message == existingData.message &&
-               data.type == existingData.type &&
-               data.status in ['unread', 'read'] &&
-               data.createdAt == existingData.createdAt &&
-               isValidTimestamp(data.updatedAt) &&
-               data.updatedAt == request.time;
-      }
-    }
-
-    // --- File Uploads Collection ---
-    match /uploads/{uploadId} {
-      allow read: if canAccessUpload();
-      allow create: if isAuthenticated() && isValidUploadData();
-      allow update: if isOwner(resource.data.uploaderId) && isValidUploadUpdate();
-      allow delete: if isOwner(resource.data.uploaderId) || isAdmin();
-
-      function canAccessUpload() {
-        return isAuthenticated() &&
-               (isOwner(resource.data.uploaderId) || 
-                ('isPublic' in resource.data && resource.data.isPublic == true) ||
-                isAdmin());
-      }
-
-      function isValidUploadData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['uploaderId', 'fileName', 'fileSize', 'mimeType', 'url', 'createdAt']) &&
-               data.uploaderId == request.auth.uid &&
-               isValidString(data.fileName, 1, 255) &&
-               data.fileSize is number &&
-               data.fileSize > 0 &&
-               data.fileSize <= 10485760 && // 10MB max
-               isValidString(data.mimeType, 1, 100) &&
-               isValidString(data.url, 1, 1000) &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time &&
-               (!('isPublic' in data) || data.isPublic is bool) &&
-               (!('category' in data) || data.category in ['profile', 'document', 'chat', 'job']);
-      }
-
-      function isValidUploadUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['uploaderId', 'fileName', 'fileSize', 'mimeType', 'url', 'createdAt', 'updatedAt']) &&
-               data.uploaderId == existingData.uploaderId &&
-               data.fileName == existingData.fileName &&
-               data.fileSize == existingData.fileSize &&
-               data.mimeType == existingData.mimeType &&
-               data.url == existingData.url &&
-               data.createdAt == existingData.createdAt &&
-               isValidTimestamp(data.updatedAt) &&
-               data.updatedAt == request.time;
-      }
-    }
-
-    // --- System Collections (Admin Only) ---
-
-    // Analytics Collection
+    // System Collections
     match /analytics/{document=**} {
       allow read, write: if isAdmin();
     }
 
-    // System Configuration
     match /config/{document=**} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Audit Logs (Server-side only)
-    match /audit_logs/{document=**} {
-      allow read: if isAdmin();
-      allow write: if false; // Only server-side writes
-    }
-
-    // App Metadata
     match /metadata/{document=**} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Service Categories and Locations (Read-only for users)
-    match /service_categories/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    match /locations/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    // Reports Collection
-    match /reports/{reportId} {
-      allow read: if isAdmin() || isOwner(resource.data.reporterId);
-      allow create: if isAuthenticated() && isValidReportData();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-
-      function isValidReportData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['reporterId', 'reportedId', 'category', 'description', 'status', 'createdAt']) &&
-               data.reporterId == request.auth.uid &&
-               isValidString(data.reportedId, 1, 100) &&
-               data.category in ['inappropriate_behavior', 'fraud', 'poor_service', 'spam', 'other'] &&
-               isValidString(data.description, 10, 2000) &&
-               data.status == 'pending' &&
-               isValidTimestamp(data.createdAt) &&
-               data.createdAt == request.time;
-      }
-    }
-
-    // Default deny rule for any unmatched paths
+    // Default deny rule
     match /{document=**} {
       allow read, write: if false;
     }
