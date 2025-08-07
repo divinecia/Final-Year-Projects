@@ -131,14 +131,21 @@ export default function WorkerRegisterStep4Page() {
       return;
     }
     
+    // Show initial processing message
     toast({
-        title: "Submitting Application...",
-        description: "Please wait while we process your information.",
+        title: "Processing Registration...",
+        description: "Creating your account and processing documents.",
+        duration: 2000,
     });
 
     try {
-        // Step 1: Create Firebase Auth user (client-side)
-        const authResult = await signUpWithEmailAndPassword(finalData.email, finalData.password);
+        // Step 1: Create Firebase Auth user (optimized)
+        const authResult = await Promise.race([
+          signUpWithEmailAndPassword(finalData.email, finalData.password),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Authentication timeout')), 10000)
+          )
+        ]) as { success: boolean; uid?: string; error?: string };
         
         if (!authResult.success || !authResult.uid) {
           toast({
@@ -149,15 +156,32 @@ export default function WorkerRegisterStep4Page() {
           return;
         }
 
-        // Step 2: Save worker profile to Firestore (server-side)
-        const result = await saveWorkerProfile(finalData, authResult.uid);
+        // Show progress update
+        toast({
+            title: "Account Created!",
+            description: "Saving your profile and uploading documents...",
+            duration: 2000,
+        });
+
+        // Step 2: Save worker profile to Firestore (optimized with timeout)
+        const result = await Promise.race([
+          saveWorkerProfile(finalData, authResult.uid),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile save timeout')), 15000)
+          )
+        ]) as { success: boolean; error?: string };
         
         if (result.success) {
             toast({
-              title: "Registration Successful!",
-              description: "Your worker application has been submitted.",
+              title: "🎉 Registration Successful!",
+              description: "Your worker application has been submitted successfully. You'll be redirected shortly.",
+              duration: 4000,
             });
-            router.push("/worker/register/success");
+            
+            // Redirect after showing success message
+            setTimeout(() => {
+              router.push("/worker/register/success");
+            }, 1500);
         } else {
              toast({
                 title: "Profile Save Failed",
@@ -167,9 +191,13 @@ export default function WorkerRegisterStep4Page() {
         }
     } catch (error) {
         console.error("Registration failed:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        
         toast({
             title: "Registration Failed",
-            description: "An unexpected error occurred. Please try again.",
+            description: errorMessage.includes('timeout') 
+              ? "The request is taking too long. Please check your connection and try again."
+              : "An unexpected error occurred. Please try again.",
             variant: "destructive",
         })
     }
@@ -181,28 +209,88 @@ export default function WorkerRegisterStep4Page() {
     capture?: boolean | "user" | "environment" 
   }) => {
     const [fileName, setFileName] = React.useState<string | null>(null);
+    const [isUploaded, setIsUploaded] = React.useState<boolean>(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        field.onChange(file);
+        setFileName(file.name);
+        setIsUploaded(true);
+        
+        // Show success notification for document upload
+        toast({
+          title: "Document Uploaded Successfully!",
+          description: `${label} has been uploaded successfully.`,
+          duration: 3000,
+        });
+      }
+    };
+
+    const handleClick = () => {
+      if (capture && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+        if (capture && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+        // For selfie with camera capture, ensure camera access
+        const constraints: MediaStreamConstraints = {
+          video: capture === true ? { facingMode: 'user' } : { facingMode: capture as 'user' | 'environment' }
+        };
+        
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(() => {
+            fileInputRef.current?.click();
+          })
+          .catch((error) => {
+            console.error('Camera access denied:', error);
+            toast({
+              variant: "destructive",
+              title: "Camera Access Required",
+              description: "Camera access is required for selfie capture"
+            });
+            return;
+          });
+      } else {
+        fileInputRef.current?.click();
+      }
+      } else {
+        fileInputRef.current?.click();
+      }
+    };
 
     return (
         <FormItem>
             <FormLabel>{label}</FormLabel>
             <FormControl>
                 <div className="relative">
-                    <Input 
+                    <input
+                      ref={fileInputRef}
                       type="file" 
                       accept="image/*" 
                       {...(capture ? { capture } : {})} 
-                      onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if(file) {
-                            field.onChange(file);
-                            setFileName(file.name);
-                          }
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      onChange={handleFileChange}
+                      className="hidden" 
                     />
-                    <div className="flex items-center justify-center w-full p-4 border-2 border-dashed rounded-md">
-                        {capture ? <Camera className="w-8 h-8 text-gray-400" /> : <Upload className="w-8 h-8 text-gray-400" />}
-                        <span className="ml-2 text-sm text-muted-foreground truncate">{fileName || "Click to upload"}</span>
+                    <div 
+                      onClick={handleClick}
+                      className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-md cursor-pointer transition-all duration-200 hover:border-primary ${
+                        isUploaded ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                      }`}
+                    >
+                        {capture ? (
+                          <Camera className={`w-8 h-8 ${isUploaded ? 'text-green-600' : 'text-gray-400'}`} />
+                        ) : (
+                          <Upload className={`w-8 h-8 ${isUploaded ? 'text-green-600' : 'text-gray-400'}`} />
+                        )}
+                        <span className={`ml-2 text-sm truncate ${
+                          isUploaded ? 'text-green-700 font-medium' : 'text-muted-foreground'
+                        }`}>
+                          {fileName || (capture ? "Take Photo with Camera" : "Click to upload")}
+                        </span>
+                        {isUploaded && (
+                          <div className="ml-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          </div>
+                        )}
                     </div>
                 </div>
             </FormControl>

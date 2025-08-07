@@ -40,21 +40,50 @@ export default function WorkerLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    toast({ title: "Logging in...", description: "Please wait." });
+    // Show initial loading state with more descriptive message
+    toast({ title: "Logging in...", description: "Please wait while we verify your credentials." });
     
-    const result = await signIn(values.email, values.password, 'worker');
+    try {
+      // Set timeout for performance optimization - prevent hanging requests
+      const timeoutPromise = new Promise<{ success: false; error: string }>((_, reject) => 
+        setTimeout(() => reject(new Error("Login is taking longer than expected. Please try again.")), 10000)
+      );
+      
+      // Race login against timeout
+      const result = await Promise.race([
+        signIn(values.email, values.password, 'worker'),
+        timeoutPromise
+      ]);
 
-    if (result.success) {
-      if (result.isNewUser) {
-        router.push("/worker/register");
+      if (result.success) {
+        // Show success message with celebration
+        toast({ 
+          title: "Login Successful! ✅", 
+          description: "Welcome back! Redirecting to your dashboard...",
+          duration: 3000
+        });
+        
+        // Small delay to show success message before redirect
+        setTimeout(() => {
+          if (result.isNewUser) {
+            router.push("/worker/register");
+          } else {
+            router.push("/worker/dashboard");
+          }
+        }, 1500);
       } else {
-        router.push("/worker/dashboard");
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: result.error || "Invalid credentials. Please check your email and password.",
+        });
       }
-    } else {
+    } catch (error) {
+      // Handle timeout or other errors
       toast({
         variant: "destructive",
-        title: "Login Failed",
-        description: result.error || "An unknown error occurred.",
+        title: "Login Timeout",
+        description: error instanceof Error ? error.message : "Login is taking too long. Please check your connection and try again.",
       });
     }
   }

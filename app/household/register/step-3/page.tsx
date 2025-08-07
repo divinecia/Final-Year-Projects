@@ -105,14 +105,21 @@ export default function HouseholdRegisterStep3Page() {
       return;
     }
 
+    // Show initial processing message
     toast({
-        title: "Creating Account...",
-        description: "Please wait while we set up your household profile.",
+        title: "Creating Your Account...",
+        description: "Setting up your household profile.",
+        duration: 2000,
     });
 
     try {
-      // Step 1: Create Firebase Auth user (client-side)
-      const authResult = await signUpWithEmailAndPassword(finalData.email, finalData.password);
+      // Step 1: Create Firebase Auth user (optimized with timeout)
+      const authResult = await Promise.race([
+        signUpWithEmailAndPassword(finalData.email, finalData.password),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Authentication timeout')), 8000)
+        )
+      ]) as { success: boolean; uid?: string; error?: string };
       
       if (!authResult.success || !authResult.uid) {
         toast({
@@ -123,15 +130,32 @@ export default function HouseholdRegisterStep3Page() {
         return;
       }
 
-      // Step 2: Save user profile to Firestore (server-side)
-      const result = await saveHouseholdProfile(finalData, authResult.uid);
+      // Show progress update
+      toast({
+          title: "Account Created!",
+          description: "Finalizing your household profile...",
+          duration: 2000,
+      });
+
+      // Step 2: Save user profile to Firestore (optimized with timeout)
+      const result = await Promise.race([
+        saveHouseholdProfile(finalData, authResult.uid),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile save timeout')), 10000)
+        )
+      ]) as { success: boolean; error?: string };
       
       if (result.success) {
         toast({
-          title: "Registration Successful!",
-          description: "Your household account has been created.",
+          title: "🎉 Registration Successful!",
+          description: "Your household account has been created successfully. Welcome to HouseHelp!",
+          duration: 4000,
         });
-        router.push("/household/register/success");
+        
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push("/household/register/success");
+        }, 1500);
       } else {
         toast({
             title: "Profile Save Failed",
@@ -141,9 +165,13 @@ export default function HouseholdRegisterStep3Page() {
       }
     } catch (error) {
        console.error('Registration error:', error);
+       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+       
        toast({
             title: "Registration Failed",
-            description: "An unexpected error occurred. Please try again.",
+            description: errorMessage.includes('timeout') 
+              ? "The request is taking too long. Please check your connection and try again."
+              : "An unexpected error occurred. Please try again.",
             variant: "destructive",
         });
     }
