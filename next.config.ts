@@ -6,9 +6,8 @@ const nextConfig = {
   // Allow dev origins for Replit
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-    // Suppress edge runtime warnings for middleware
-    serverComponentsExternalPackages: [],
   },
+  serverExternalPackages: ["@google-cloud/storage"],
   
   // Configure allowed dev origins for Replit
   ...(process.env.NODE_ENV === 'development' && {

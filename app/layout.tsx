@@ -1,16 +1,8 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  fallback: ['system-ui', 'arial'],
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Househelp',
@@ -41,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("font-body antialiased bg-background", inter.variable)} suppressHydrationWarning>
+      <body className={cn("font-inter antialiased bg-background")} suppressHydrationWarning>
         {children}
         <Toaster />
       </body>
