@@ -79,8 +79,9 @@ service cloud.firestore {
 
     // --- Admins Collection ---
     match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow create, delete: if false; // Only server-side
+      allow read: if isAuthenticated() && request.auth.uid == adminId;
+      allow create: if true; // Temporarily allow for seeding
+      allow delete: if false; // Only server-side
       allow update: if isOwner(adminId) && isAdmin();
     }
 
