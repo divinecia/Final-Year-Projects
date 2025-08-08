@@ -468,6 +468,108 @@ service cloud.firestore {
       }
     }
 
+    // Service Payments Collection
+    match /servicePayments/{paymentId} {
+      allow read: if canAccessServicePayment();
+      allow create: if isAuthenticated() && isValidServicePaymentData();
+      allow update: if canAccessServicePayment() && isValidServicePaymentUpdate();
+      allow delete: if isAdmin();
+
+      function canAccessServicePayment() {
+        return isAuthenticated() &&
+               (request.auth.uid == resource.data.householdId || 
+                request.auth.uid == resource.data.workerId || 
+                isAdmin());
+      }
+
+      function isValidServicePaymentData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['householdId', 'workerId', 'amount', 'status', 'createdAt']) &&
+               data.householdId is string &&
+               data.workerId is string &&
+               isValidPrice(data.amount) &&
+               data.status in ['pending', 'completed', 'failed'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time &&
+               (!('paymentMethod' in data) || data.paymentMethod in ['mobile_money', 'card', 'bank_transfer']) &&
+               (!('serviceType' in data) || isValidString(data.serviceType, 1, 100)) &&
+               (!('workerName' in data) || isValidString(data.workerName, 1, 100)) &&
+               (!('householdName' in data) || isValidString(data.householdName, 1, 100));
+      }
+
+      function isValidServicePaymentUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        // Only allow status, updatedAt, and transaction details updates
+        return data.householdId == existingData.householdId &&
+               data.workerId == existingData.workerId &&
+               data.amount == existingData.amount &&
+               data.createdAt == existingData.createdAt &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
+      }
+    }
+
+    // Training Payments Collection
+    match /trainingPayments/{paymentId} {
+      allow read: if canAccessTrainingPayment();
+      allow create: if isAuthenticated() && isValidTrainingPaymentData();
+      allow update: if canAccessTrainingPayment() && isValidTrainingPaymentUpdate();
+      allow delete: if isAdmin();
+
+      function canAccessTrainingPayment() {
+        return isAuthenticated() &&
+               (request.auth.uid == resource.data.workerId || isAdmin());
+      }
+
+      function isValidTrainingPaymentData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['workerId', 'amount', 'status', 'createdAt']) &&
+               data.workerId is string &&
+               isValidPrice(data.amount) &&
+               data.status in ['pending', 'completed', 'failed'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time &&
+               (!('paymentMethod' in data) || data.paymentMethod in ['mobile_money', 'card', 'bank_transfer']) &&
+               (!('courseTitle' in data) || isValidString(data.courseTitle, 1, 200)) &&
+               (!('workerName' in data) || isValidString(data.workerName, 1, 100));
+      }
+
+      function isValidTrainingPaymentUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        // Only allow status, updatedAt, and transaction details updates
+        return data.workerId == existingData.workerId &&
+               data.amount == existingData.amount &&
+               data.createdAt == existingData.createdAt &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
+      }
+    }
+
+    // Admin Logs Collection
+    match /adminLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Reports Collection
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidReportData();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+
+      function isValidReportData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['userId', 'title', 'description', 'type', 'status', 'createdAt']) &&
+               data.userId == request.auth.uid &&
+               isValidString(data.title, 1, 200) &&
+               isValidString(data.description, 1, 2000) &&
+               data.type in ['bug', 'feature', 'complaint', 'security', 'other'] &&
+               data.status == 'pending' &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+    }
+
     // System Collections
     match /analytics/{document=**} {
       allow read, write: if isAdmin();
