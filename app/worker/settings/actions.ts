@@ -16,7 +16,7 @@ export async function getWorkerProfile(workerId: string): Promise<WorkerProfile 
     }
 
     try {
-        const workerRef = doc(db, 'workers', userId);
+        const workerRef = doc(db, 'workers', workerId);
         const docSnap = await getDoc(workerRef);
 
         if (!docSnap.exists()) {
