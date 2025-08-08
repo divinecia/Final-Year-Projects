@@ -147,43 +147,46 @@ service cloud.firestore {
 
       function isValidWorkerData() {
         let data = request.resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt']) &&
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'createdAt']) &&
                isValidString(data.fullName, 2, 100) &&
                isValidEmail(data.email) &&
                isValidPhone(data.phone) &&
-               isValidServices(data.services) &&
-               isValidLocation(data.location) &&
-               data.dateOfBirth is timestamp &&
-               data.gender in ['male', 'female', 'other'] &&
-               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
+               data.services is list &&
+               data.services.size() > 0 &&
                data.createdAt is timestamp &&
-               data.createdAt == request.time;
+               data.createdAt == request.time &&
+               (!('address' in data) || isValidString(data.address, 5, 200)) &&
+               (!('district' in data) || isValidString(data.district, 2, 50)) &&
+               (!('sector' in data) || isValidString(data.sector, 2, 50)) &&
+               (!('dateOfBirth' in data) || isValidString(data.dateOfBirth, 8, 12)) &&
+               (!('nationalId' in data) || isValidString(data.nationalId, 10, 20)) &&
+               (!('experience' in data) || isValidString(data.experience, 0, 1000)) &&
+               (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+               (!('totalReviews' in data) || (data.totalReviews is number && data.totalReviews >= 0)) &&
+               (!('completedJobs' in data) || (data.completedJobs is number && data.completedJobs >= 0)) &&
+               (!('isVerified' in data) || data.isVerified is bool) &&
+               (!('availability' in data) || data.availability is map) &&
+               (!('documents' in data) || data.documents is map) &&
+               (!('emergencyContact' in data) || data.emergencyContact is map) &&
+               (!('bankAccount' in data) || data.bankAccount is map) &&
+               (!('userId' in data) || isValidString(data.userId, 1, 100)) &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
+      }
       }
 
       function isValidWorkerUpdate() {
         let data = request.resource.data;
         let existingData = resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt', 'updatedAt']) &&
-               isValidString(data.fullName, 2, 100) &&
-               isValidEmail(data.email) &&
-               isValidPhone(data.phone) &&
-               isValidServices(data.services) &&
-               isValidLocation(data.location) &&
-               data.dateOfBirth is timestamp &&
-               data.gender in ['male', 'female', 'other'] &&
-               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
-               data.updatedAt is timestamp &&
-               data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt;
-      }
-
-      match /documents/{documentId} {
-        allow read, write: if isOwner(workerId) || isAdmin();
-      }
-
-      match /availability/{availabilityId} {
-        allow read: if isAuthenticated();
-        allow write: if isOwner(workerId);
+        return data.createdAt == existingData.createdAt &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+               (!('fullName' in data) || isValidString(data.fullName, 2, 100)) &&
+               (!('email' in data) || isValidEmail(data.email)) &&
+               (!('phone' in data) || isValidPhone(data.phone)) &&
+               (!('services' in data) || (data.services is list && data.services.size() > 0)) &&
+               (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+               (!('totalReviews' in data) || (data.totalReviews is number && data.totalReviews >= 0)) &&
+               (!('completedJobs' in data) || (data.completedJobs is number && data.completedJobs >= 0)) &&
+               (!('isVerified' in data) || data.isVerified is bool);
       }
     }
 
@@ -196,28 +199,38 @@ service cloud.firestore {
 
       function isValidHouseholdData() {
         let data = request.resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt']) &&
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'createdAt']) &&
                isValidString(data.fullName, 2, 100) &&
                isValidEmail(data.email) &&
                isValidPhone(data.phone) &&
-               isValidLocation(data.location) &&
-               data.status in ['active', 'inactive', 'suspended'] &&
                data.createdAt is timestamp &&
-               data.createdAt == request.time;
+               data.createdAt == request.time &&
+               (!('address' in data) || isValidString(data.address, 5, 200)) &&
+               (!('district' in data) || isValidString(data.district, 2, 50)) &&
+               (!('sector' in data) || isValidString(data.sector, 2, 50)) &&
+               (!('propertyType' in data) || data.propertyType in ['house', 'apartment', 'villa', 'other']) &&
+               (!('numRooms' in data) || (data.numRooms is number && data.numRooms >= 1 && data.numRooms <= 50)) &&
+               (!('hasGarden' in data) || data.hasGarden in ['yes', 'no']) &&
+               (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+               (!('totalReviews' in data) || (data.totalReviews is number && data.totalReviews >= 0)) &&
+               (!('isVerified' in data) || data.isVerified is bool) &&
+               (!('preferences' in data) || data.preferences is map) &&
+               (!('profilePicture' in data) || isValidString(data.profilePicture, 5, 500)) &&
+               (!('userId' in data) || isValidString(data.userId, 1, 100)) &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
       }
 
       function isValidHouseholdUpdate() {
         let data = request.resource.data;
         let existingData = resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt', 'updatedAt']) &&
-               isValidString(data.fullName, 2, 100) &&
-               isValidEmail(data.email) &&
-               isValidPhone(data.phone) &&
-               isValidLocation(data.location) &&
-               data.status in ['active', 'inactive', 'suspended'] &&
-               data.updatedAt is timestamp &&
-               data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt;
+        return data.createdAt == existingData.createdAt &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+               (!('fullName' in data) || isValidString(data.fullName, 2, 100)) &&
+               (!('email' in data) || isValidEmail(data.email)) &&
+               (!('phone' in data) || isValidPhone(data.phone)) &&
+               (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+               (!('totalReviews' in data) || (data.totalReviews is number && data.totalReviews >= 0)) &&
+               (!('isVerified' in data) || data.isVerified is bool);
       }
     }
 
