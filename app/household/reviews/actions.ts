@@ -111,7 +111,7 @@ export async function submitReview(
         // Get job and worker details for the review
         const jobRef = doc(db, 'jobs', jobId);
         const jobSnap = await getDoc(jobRef);
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         const workerSnap = await getDoc(workerRef);
 
         if (!jobSnap.exists() || !workerSnap.exists()) {

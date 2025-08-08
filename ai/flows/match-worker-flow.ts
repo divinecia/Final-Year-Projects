@@ -45,7 +45,7 @@ async function getJobDetails(jobId: string) {
 
 // Helper function to get all active workers
 async function getActiveWorkers() {
-    const workersCol = collection(db, 'worker');
+    const workersCol = collection(db, 'workers');
     const q = query(workersCol, where('status', '==', 'active'));
     const querySnapshot = await getDocs(q);
     

@@ -40,7 +40,7 @@ function mapWorkerDoc(id: string, data: WorkerDoc): Worker {
  */
 export async function getWorkers(): Promise<Worker[]> {
   try {
-    const workersCollection = collection(db, 'worker');
+    const workersCollection = collection(db, 'workers');
     const q = query(workersCollection, orderBy('dateJoined', 'desc'));
     const querySnapshot = await getDocs(q);
 
@@ -65,7 +65,7 @@ async function updateWorkerStatus(
   status: Worker['status']
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const workerRef = doc(db, 'worker', workerId);
+    const workerRef = doc(db, 'workers', workerId);
     await updateDoc(workerRef, { status });
     return { success: true };
   } catch (error: unknown) {
@@ -93,7 +93,7 @@ export async function deleteWorker(
   workerId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const workerRef = doc(db, 'worker', workerId);
+    const workerRef = doc(db, 'workers', workerId);
     await deleteDoc(workerRef);
     return { success: true };
   } catch (error: unknown) {

@@ -30,7 +30,7 @@ function formatDate(date: Timestamp | string | undefined): string {
 
 export async function getHouseholds(): Promise<Household[]> {
   try {
-    const householdsCollection = collection(db, 'household');
+    const householdsCollection = collection(db, 'households');
     const q = query(householdsCollection, orderBy('dateJoined', 'desc'));
     const querySnapshot = await getDocs(q);
 

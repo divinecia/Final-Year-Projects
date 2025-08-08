@@ -6,7 +6,7 @@ import type { Booking } from '../bookings/actions';
 const DEFAULT_AVATAR = 'https://ui-avatars.io/api/?name=Worker&background=3B82F6&color=ffffff&size=100';
 
 export async function getTopRatedWorkers(): Promise<Worker[]> {
-  const workersCollection = collection(db, 'worker');
+  const workersCollection = collection(db, 'workers');
   try {
     const q = query(
       workersCollection,
@@ -104,7 +104,7 @@ async function getWorkerProfilePicture(workerId?: string): Promise<string> {
   if (!workerId) return DEFAULT_AVATAR;
 
   try {
-    const workerDoc = await getDoc(doc(db, 'worker', workerId));
+    const workerDoc = await getDoc(doc(db, 'workers', workerId));
     if (!workerDoc.exists()) return DEFAULT_AVATAR;
 
     const workerData = workerDoc.data();

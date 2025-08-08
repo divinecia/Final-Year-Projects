@@ -96,8 +96,8 @@ export async function GET() {
   try {
     // --- Dashboard statistics ---
     const [workersSnap, householdsSnap, completedJobsSnap] = await Promise.all([
-      getCountFromServer(collection(db, 'worker')),
-      getCountFromServer(collection(db, 'household')),
+      getCountFromServer(collection(db, 'workers')),
+      getCountFromServer(collection(db, 'households')),
       getCountFromServer(query(collection(db, 'jobs'), where('status', '==', 'completed')))
     ]);
 
@@ -120,7 +120,7 @@ export async function GET() {
 
     // --- Recent worker registrations ---
     const recentWorkersQuery = query(
-      collection(db, 'worker'),
+      collection(db, 'workers'),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
@@ -163,7 +163,7 @@ export async function GET() {
 
     const [newWorkersThisMonth, newJobsThisMonth] = await Promise.all([
       getCountFromServer(query(
-        collection(db, 'worker'),
+        collection(db, 'workers'),
         where('createdAt', '>=', Timestamp.fromDate(thirtyDaysAgo))
       )),
       getCountFromServer(query(

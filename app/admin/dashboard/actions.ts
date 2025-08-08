@@ -43,8 +43,8 @@ export type DashboardStats = {
 export async function getDashboardStats(): Promise<DashboardStats> {
     try {
         const [workersSnap, householdsSnap, completedJobsSnap] = await Promise.all([
-            getCountFromServer(collection(db, 'worker')),
-            getCountFromServer(collection(db, 'household')),
+            getCountFromServer(collection(db, 'workers')),
+            getCountFromServer(collection(db, 'households')),
             getCountFromServer(query(collection(db, 'jobs'), where('status', '==', 'completed'))),
         ]);
 
@@ -99,7 +99,7 @@ function mapWorkerDoc(doc: QueryDocumentSnapshot<DocumentData>): Worker {
  */
 export async function getRecentWorkerRegistrations(): Promise<Worker[]> {
     try {
-        const workersCollection = collection(db, 'worker');
+        const workersCollection = collection(db, 'workers');
         const q = query(workersCollection, orderBy('dateJoined', 'desc'), limit(5));
         const querySnapshot = await getDocs(q);
 

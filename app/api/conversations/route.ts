@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         
         if (otherParticipantId) {
           // Try to get user info from worker collection first, then household
-          const workerDoc = await getDoc(firestoreDoc(db, 'worker', otherParticipantId));
+          const workerDoc = await getDoc(firestoreDoc(db, 'workers', otherParticipantId));
           if (workerDoc.exists()) {
             const workerData = workerDoc.data() as Record<string, unknown>;
             otherParticipant = {

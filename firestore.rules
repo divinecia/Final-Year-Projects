@@ -347,27 +347,32 @@ service cloud.firestore {
 
       function isValidReviewData() {
         let data = request.resource.data;
-        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'rating', 'comment', 'createdAt']) &&
-               isValidString(data.bookingId, 1, 100) &&
+        return data.keys().hasAll(['householdId', 'workerId', 'rating', 'comment', 'createdAt']) &&
                data.householdId == request.auth.uid &&
                isValidString(data.workerId, 1, 100) &&
                isValidRating(data.rating) &&
                isValidString(data.comment, 5, 2000) &&
                data.createdAt is timestamp &&
                data.createdAt == request.time &&
-               exists(/databases/$(database)/documents/bookings/$(data.bookingId)) &&
-               get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.status == 'completed' &&
-               get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.householdId == request.auth.uid;
+               (!('bookingId' in data) || isValidString(data.bookingId, 1, 100)) &&
+               (!('serviceId' in data) || isValidString(data.serviceId, 1, 100)) &&
+               (!('reviewType' in data) || data.reviewType in ['household_to_worker', 'worker_to_household']) &&
+               (!('isVerified' in data) || data.isVerified is bool) &&
+               (!('workerName' in data) || isValidString(data.workerName, 1, 100)) &&
+               (!('jobTitle' in data) || isValidString(data.jobTitle, 1, 200));
       }
 
       function isValidReviewUpdate() {
         let data = request.resource.data;
         let existingData = resource.data;
-        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'rating', 'comment', 'createdAt', 'updatedAt']) &&
-               data.bookingId == existingData.bookingId &&
-               data.householdId == existingData.householdId &&
+        return data.householdId == existingData.householdId &&
                data.workerId == existingData.workerId &&
                isValidRating(data.rating) &&
+               isValidString(data.comment, 5, 2000) &&
+               data.createdAt == existingData.createdAt &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+               (!('isVerified' in data) || data.isVerified is bool);
+      }
                isValidString(data.comment, 5, 2000) &&
                data.createdAt == existingData.createdAt &&
                data.updatedAt is timestamp &&

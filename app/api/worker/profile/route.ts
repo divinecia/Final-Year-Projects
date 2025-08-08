@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         const docSnap = await getDoc(workerRef);
 
         if (!docSnap.exists()) {

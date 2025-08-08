@@ -31,7 +31,7 @@ export type Booking = Job & {
 async function getWorkerDetails(workerId: string): Promise<{ workerPhone?: string; workerProfilePictureUrl?: string }> {
     if (!workerId) return {};
     try {
-        const workerDoc = await getDoc(doc(db, 'worker', workerId));
+        const workerDoc = await getDoc(doc(db, 'workers', workerId));
         if (workerDoc.exists()) {
             const workerData = workerDoc.data();
             return {

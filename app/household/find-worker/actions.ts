@@ -17,7 +17,7 @@ export type Worker = {
 
 export async function getActiveWorkers(): Promise<Worker[]> {
   try {
-    const workersCollection = collection(db, 'worker');
+    const workersCollection = collection(db, 'workers');
     const q = query(workersCollection, where('status', '==', 'active'), orderBy('fullName'));
     const querySnapshot = await getDocs(q);
 
@@ -72,7 +72,7 @@ export async function getPreviouslyHiredWorkers(householdId: string): Promise<Wo
         }
 
         // 3. Fetch profiles for those workers using the document ID
-        const workersQuery = query(collection(db, 'worker'), where(documentId(), 'in', workerIds));
+        const workersQuery = query(collection(db, 'workers'), where(documentId(), 'in', workerIds));
         const workersSnapshot = await getDocs(workersQuery);
         
         return workersSnapshot.docs.map(doc => {
