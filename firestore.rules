@@ -434,6 +434,40 @@ service cloud.firestore {
       }
     }
 
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if canAccessNotification();
+      allow create: if isAuthenticated() && isValidNotificationData();
+      allow update: if canAccessNotification() && isValidNotificationUpdate();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+
+      function canAccessNotification() {
+        return isAuthenticated() &&
+               (request.auth.uid == resource.data.userId || isAdmin());
+      }
+
+      function isValidNotificationData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['userId', 'title', 'message', 'type', 'isRead', 'createdAt']) &&
+               isValidString(data.title, 1, 200) &&
+               isValidString(data.message, 1, 1000) &&
+               data.type in ['booking', 'payment', 'job', 'system', 'reminder'] &&
+               data.isRead == false &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+
+      function isValidNotificationUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.userId == existingData.userId &&
+               data.title == existingData.title &&
+               data.message == existingData.message &&
+               data.type == existingData.type &&
+               data.createdAt == existingData.createdAt;
+      }
+    }
+
     // System Collections
     match /analytics/{document=**} {
       allow read, write: if isAdmin();
