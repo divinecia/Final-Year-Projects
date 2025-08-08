@@ -27,7 +27,7 @@ export async function getWorkerDashboardStats(workerId: string): Promise<WorkerD
         const upcomingJobsSnap = await getDocs(upcomingJobsQuery);
 
         // Get rating from the worker's profile using the schema structure
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         const workerSnap = await getDoc(workerRef);
         let rating = 0;
         if (workerSnap.exists()) {

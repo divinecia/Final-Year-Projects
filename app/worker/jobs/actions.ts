@@ -54,7 +54,7 @@ export async function applyForJob(jobId: string, workerId: string, coverLetter?:
     }
 
     try {
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         const workerSnap = await getDoc(workerRef);
 
         if (!workerSnap.exists()) {

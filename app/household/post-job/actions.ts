@@ -27,7 +27,7 @@ export type JobPostFormData = z.infer<typeof jobPostSchema>;
 
 export async function createJobPost(householdId: string, data: JobPostFormData) {
   try {
-    const householdRef = doc(db, 'household', householdId);
+    const householdRef = doc(db, 'households', householdId);
     const householdSnap = await getDoc(householdRef);
 
     if (!householdSnap.exists()) {

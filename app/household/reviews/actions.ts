@@ -153,7 +153,7 @@ export async function submitReview(
         await batch.commit();
         
         // 3. Create a notification for the worker
-        const householdSnap = await getDoc(doc(db, 'household', householdId));
+        const householdSnap = await getDoc(doc(db, 'households', householdId));
         const householdName = householdSnap.data()?.fullName || 'A household';
         await createNotification(
             workerId,

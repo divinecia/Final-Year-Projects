@@ -25,7 +25,7 @@ export async function getWorkerReviews(workerId: string): Promise<ReviewSummary>
 
     try {
         // Fetch worker's main profile to get aggregate data
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         const workerSnap = await getDoc(workerRef);
         if (workerSnap.exists()) {
             const workerData = workerSnap.data();

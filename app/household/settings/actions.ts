@@ -27,7 +27,7 @@ export async function getHouseholdProfile(userId: string): Promise<HouseholdProf
     }
 
     try {
-        const householdRef = doc(db, 'household', userId);
+        const householdRef = doc(db, 'households', userId);
         const docSnap = await getDoc(householdRef);
 
         if (!docSnap.exists()) {
@@ -51,7 +51,7 @@ export async function getHouseholdProfile(userId: string): Promise<HouseholdProf
 
 export async function updateHouseholdProfile(householdId: string, data: HouseholdSettingsData): Promise<{ success: boolean }> {
   try {
-    const householdRef = doc(db, 'household', householdId);
+    const householdRef = doc(db, 'households', householdId);
     
     const dataToUpdate = {
         fullName: data.fullName,

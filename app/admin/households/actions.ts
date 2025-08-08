@@ -53,7 +53,7 @@ export async function getHouseholds(): Promise<Household[]> {
 
 export async function deleteHousehold(householdId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await deleteDoc(doc(db, 'household', householdId));
+    await deleteDoc(doc(db, 'households', householdId));
     revalidatePath('/admin/households');
     return { success: true };
   } catch (error: unknown) {

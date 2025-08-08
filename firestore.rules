@@ -120,6 +120,22 @@ service cloud.firestore {
       allow create: if isOwner(userId) || isAdmin() || isInitialAdmin();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+
+      function isValidUserData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['uid', 'email', 'role', 'isActive', 'emailVerified', 'createdAt']) &&
+               data.uid == userId &&
+               isValidEmail(data.email) &&
+               data.role in ['admin', 'household', 'worker'] &&
+               data.isActive is bool &&
+               data.emailVerified is bool &&
+               data.createdAt is timestamp &&
+               (!('displayName' in data) || isValidString(data.displayName, 1, 100)) &&
+               (!('phoneNumber' in data) || isValidPhone(data.phoneNumber)) &&
+               (!('photoURL' in data) || isValidString(data.photoURL, 1, 500)) &&
+               (!('lastLoginAt' in data) || data.lastLoginAt is timestamp) &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
+      }
     }
 
     // Workers Collection
@@ -550,6 +566,43 @@ service cloud.firestore {
       }
     }
 
+    // Services Collection
+    match /services/{serviceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidServiceData();
+      allow delete: if isAdmin();
+
+      function isValidServiceData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['name', 'category', 'description', 'basePrice', 'priceUnit', 'estimatedDuration', 'isActive']) &&
+               isValidString(data.name, 1, 100) &&
+               data.category in ['cleaning', 'cooking', 'gardening', 'childcare', 'eldercare', 'petcare', 'maintenance', 'laundry', 'other'] &&
+               isValidString(data.description, 10, 500) &&
+               isValidPrice(data.basePrice) &&
+               data.priceUnit in ['hourly', 'daily', 'weekly', 'monthly', 'per_job'] &&
+               data.estimatedDuration is number &&
+               data.estimatedDuration >= 30 &&
+               data.estimatedDuration <= 1440 &&
+               data.isActive is bool &&
+               (!('icon' in data) || isValidString(data.icon, 1, 10)) &&
+               (!('requirements' in data) || (data.requirements is list && data.requirements.size() <= 10)) &&
+               (!('createdAt' in data) || data.createdAt is timestamp) &&
+               (!('updatedAt' in data) || data.updatedAt is timestamp);
+      }
+    }
+
+    // Locations Collection
+    match /locations/{locationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // System Configuration Collection  
+    match /system/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // Admin Logs Collection
     match /adminLogs/{logId} {
       allow read, write: if isAdmin();
@@ -573,6 +626,18 @@ service cloud.firestore {
                data.createdAt is timestamp &&
                data.createdAt == request.time;
       }
+    }
+
+    // Locations Collection
+    match /locations/{locationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // System Collection
+    match /system/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // System Collections

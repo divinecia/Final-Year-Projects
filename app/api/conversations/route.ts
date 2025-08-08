@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
               profilePicture: workerData.profilePictureUrl || null,
             };
           } else {
-            const householdDoc = await getDoc(firestoreDoc(db, 'household', otherParticipantId));
+            const householdDoc = await getDoc(firestoreDoc(db, 'households', otherParticipantId));
             if (householdDoc.exists()) {
               const householdData = householdDoc.data() as Record<string, unknown>;
               otherParticipant = {

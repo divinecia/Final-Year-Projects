@@ -16,7 +16,7 @@ export async function getWorkerProfile(workerId: string): Promise<WorkerProfile 
     }
 
     try {
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', userId);
         const docSnap = await getDoc(workerRef);
 
         if (!docSnap.exists()) {
@@ -47,7 +47,7 @@ export async function getWorkerProfile(workerId: string): Promise<WorkerProfile 
 
 export async function updateWorkerProfile(workerId: string, data: WorkerSettingsData): Promise<{ success: boolean }> {
   try {
-    const workerRef = doc(db, 'worker', workerId);
+    const workerRef = doc(db, 'workers', workerId);
     
     // We need to map the form data back to the database structure
     const dataToUpdate = {

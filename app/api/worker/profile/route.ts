@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
         // Validate the data
         const validatedData = WorkerSettingsSchema.parse(data);
 
-        const workerRef = doc(db, 'worker', workerId);
+        const workerRef = doc(db, 'workers', workerId);
         
         const dataToUpdate = {
             fullName: validatedData.fullName,
