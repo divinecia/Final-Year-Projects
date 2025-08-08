@@ -24,7 +24,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+             exists(/databases/$(database)/documents/admin/$(request.auth.uid));
     }
 
     // Allow initial admin creation for seeding - temporarily relaxed
@@ -107,7 +107,7 @@ service cloud.firestore {
     }
 
     // Admin Collection - Allow initial admin creation
-    match /admins/{adminId} {
+    match /admin/{adminId} {
       allow read: if isAuthenticated() && (isAdmin() || isInitialAdmin());
       allow create: if isInitialAdmin() || isAdmin();
       allow update: if isOwner(adminId) || isAdmin();

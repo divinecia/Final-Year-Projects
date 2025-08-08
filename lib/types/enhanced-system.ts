@@ -111,7 +111,7 @@ export interface MaintenanceStep {
 }
 
 export interface Communication {
-  type: 'users' | 'admins' | 'workers' | 'households';
+  type: 'users' | 'admin' | 'workers' | 'households';
   message: string;
   sentAt: Date;
 }

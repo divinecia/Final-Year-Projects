@@ -27,7 +27,7 @@ export async function GET(
     }
     
     // Determine collection name
-    const collectionName = userType === 'admin' ? 'admins' : userType;
+    const collectionName = userType === 'admin' ? 'admin' : userType;
     
     const userRef = doc(db, collectionName, userId);
     const userSnap = await getDoc(userRef);
@@ -83,7 +83,7 @@ export async function PUT(
     const validatedData = UpdateUserStatusSchema.parse(body);
     
     // Determine collection name
-    const collectionName = validatedData.userType === 'admin' ? 'admins' : validatedData.userType;
+    const collectionName = validatedData.userType === 'admin' ? 'admin' : validatedData.userType;
     
     const userRef = doc(db, collectionName, userId);
     const userSnap = await getDoc(userRef);
@@ -187,7 +187,7 @@ export async function DELETE(
     }
 
     // Determine collection name
-    const collectionName = userType === 'admin' ? 'admins' : userType;
+    const collectionName = userType === 'admin' ? 'admin' : userType;
 
     const userRef = doc(db, collectionName, userId);
     const userSnap = await getDoc(userRef);

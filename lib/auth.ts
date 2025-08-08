@@ -52,13 +52,13 @@ export async function getFirebaseAuth(): Promise<Auth> {
 type UserType = 'worker' | 'household' | 'admin';
 
 async function userProfileExists(uid: string, userType: UserType): Promise<boolean> {
-  const collectionName = userType === 'admin' ? 'admins' : userType;
+  const collectionName = userType === 'admin' ? 'admin' : userType;
   const userDoc = await getDoc(doc(db, collectionName, uid));
   return userDoc.exists();
 }
 
 async function createUserProfile(uid: string, email: string, userType: UserType): Promise<void> {
-  const collectionName = userType === 'admin' ? 'admins' : userType;
+  const collectionName = userType === 'admin' ? 'admin' : userType;
   await setDoc(doc(db, collectionName, uid), {
     email,
     createdAt: Date.now(),

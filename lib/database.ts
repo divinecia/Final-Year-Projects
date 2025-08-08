@@ -22,7 +22,7 @@ export interface DatabaseResult<T = unknown> {
 }
 
 function getUserCollection(userType: 'household' | 'worker' | 'admin'): string {
-  return userType === 'admin' ? 'admins' : userType;
+  return userType === 'admin' ? 'admin' : userType;
 }
 
 function handleError(error: unknown, message: string): DatabaseResult<never> {

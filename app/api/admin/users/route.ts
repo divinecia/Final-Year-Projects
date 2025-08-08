@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const userTypes = validatedParams.type ? [validatedParams.type] : ['worker', 'household', 'admin'];
     
     for (const userType of userTypes) {
-      const collectionName = userType === 'admin' ? 'admins' : userType;
+      const collectionName = userType === 'admin' ? 'admin' : userType;
       const queryConstraints: import('firebase/firestore').QueryConstraint[] = [orderBy('createdAt', 'desc')];
       if (validatedParams.status) {
         queryConstraints.unshift(where('status', '==', validatedParams.status));
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     const validatedData = CreateUserSchema.parse(body);
 
     // Determine collection name
-    const collectionName = validatedData.userType === 'admin' ? 'admins' : validatedData.userType;
+    const collectionName = validatedData.userType === 'admin' ? 'admin' : validatedData.userType;
 
     // Add createdAt and updatedAt timestamps
     const newUser = {
