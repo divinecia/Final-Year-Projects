@@ -19,29 +19,26 @@ import { revalidatePath } from 'next/cache';
 export type Message = {
     id: string;
     text: string;
-    type: 'text' | 'image' | 'file' | 'system';
-    conversationId: string;
     senderId: string;
     senderName: string;
     senderType: 'household' | 'worker' | 'admin';
-    imageUrl?: string;
-    fileName?: string;
-    fileUrl?: string;
-    read: boolean;
-    sentAt: Timestamp;
-    readAt?: Timestamp;
+    jobId?: string;
+    isRead: boolean;
+    timestamp: Timestamp;
+    attachments?: {
+        name: string;
+        type: string[];
+        url: string;
+    };
 };
 
 export type Conversation = {
     id: string;
     participants: string[];
-    participantTypes: string[];
     jobId?: string;
     jobTitle?: string;
-    lastMessage: string;
-    lastMessageTime: Timestamp;
-    lastMessageSender: string;
-    unreadCount: { [userId: string]: number };
+    lastMessage?: string;
+    lastMessagedAt?: Timestamp;
     createdAt: Timestamp;
     updatedAt: Timestamp;
 };
@@ -56,11 +53,11 @@ export type NewMessage = {
 
 export async function getConversations(userId: string): Promise<Conversation[]> {
     try {
-        const conversationsCol = collection(db, 'conversations');
+        const conversationsCol = collection(db, 'chats');
         const q = query(
             conversationsCol, 
-            where('participants', 'array-contains', userId), 
-            orderBy('lastMessageTime', 'desc')
+            where('participants', 'array-contains', userId),
+            orderBy('lastMessagedAt', 'desc')
         );
         const querySnapshot = await getDocs(q);
         
@@ -74,11 +71,10 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
     try {
-        const messagesCol = collection(db, 'messages');
+        const messagesCol = collection(db, 'chats', conversationId, 'messages');
         const q = query(
             messagesCol, 
-            where('conversationId', '==', conversationId),
-            orderBy('sentAt', 'asc')
+            orderBy('timestamp', 'asc')
         );
         const querySnapshot = await getDocs(q);
         
@@ -98,7 +94,7 @@ export async function createConversation(
 ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
         // Check if conversation already exists between these participants
-        const conversationsCol = collection(db, 'conversations');
+        const conversationsCol = collection(db, 'chats');
         const existingConversationQuery = query(
             conversationsCol, 
             where('participants', '==', participantIds.sort())
@@ -122,7 +118,7 @@ export async function createConversation(
             jobId,
             jobTitle,
             lastMessage: '',
-            lastMessageTime: serverTimestamp(),
+            lastMessagedAt: serverTimestamp(),
             lastMessageSender: '',
             unreadCount,
             createdAt: serverTimestamp(),
@@ -149,40 +145,26 @@ export async function sendMessage(
     }
 
     try {
-        // Add message to messages collection
-        const messagesCol = collection(db, 'messages');
+        // Add message to chats messages subcollection
+        const messagesCol = collection(db, 'chats', conversationId, 'messages');
         await addDoc(messagesCol, {
             text: message.text,
-            type: 'text',
-            conversationId,
             senderId: message.senderId,
             senderName: message.senderName,
             senderType: message.senderType,
-            read: false,
-            sentAt: serverTimestamp(),
+            jobId: message.jobId,
+            isRead: false,
+            timestamp: serverTimestamp(),
         });
 
-        // Update conversation's last message info
-        const conversationRef = doc(db, 'conversations', conversationId);
-        const conversationDoc = await getDoc(conversationRef);
+        // Update chat's last message info
+        const chatRef = doc(db, 'chats', conversationId);
+        const chatDoc = await getDoc(chatRef);
         
-        if (conversationDoc.exists()) {
-            const conversationData = conversationDoc.data();
-            const currentUnreadCount = conversationData.unreadCount || {};
-            
-            // Increment unread count for all participants except sender
-            const updatedUnreadCount = { ...currentUnreadCount };
-            conversationData.participants.forEach((participantId: string) => {
-                if (participantId !== message.senderId) {
-                    updatedUnreadCount[participantId] = (updatedUnreadCount[participantId] || 0) + 1;
-                }
-            });
-
-            await updateDoc(conversationRef, {
+        if (chatDoc.exists()) {
+            await updateDoc(chatRef, {
                 lastMessage: message.text.substring(0, 100),
-                lastMessageTime: serverTimestamp(),
-                lastMessageSender: message.senderId,
-                unreadCount: updatedUnreadCount,
+                lastMessagedAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
         }
@@ -203,39 +185,22 @@ export async function markMessagesAsRead(
     userId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        // Mark messages as read in the messages collection
-        const messagesCol = collection(db, 'messages');
+        // Mark messages as read in the chats messages subcollection
+        const messagesCol = collection(db, 'chats', conversationId, 'messages');
         const q = query(
             messagesCol, 
-            where('conversationId', '==', conversationId),
             where('senderId', '!=', userId),
-            where('read', '==', false)
+            where('isRead', '==', false)
         );
         const querySnapshot = await getDocs(q);
         
         const messageUpdates = querySnapshot.docs.map((document) => 
             updateDoc(document.ref, { 
-                read: true,
-                readAt: serverTimestamp()
+                isRead: true
             })
         );
         
         await Promise.all(messageUpdates);
-
-        // Reset unread count for this user in the conversation
-        const conversationRef = doc(db, 'conversations', conversationId);
-        const conversationDoc = await getDoc(conversationRef);
-        
-        if (conversationDoc.exists()) {
-            const conversationData = conversationDoc.data();
-            const updatedUnreadCount = { ...conversationData.unreadCount };
-            updatedUnreadCount[userId] = 0;
-
-            await updateDoc(conversationRef, {
-                unreadCount: updatedUnreadCount,
-                updatedAt: serverTimestamp(),
-            });
-        }
 
         return { success: true };
 

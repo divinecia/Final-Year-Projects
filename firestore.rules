@@ -375,6 +375,65 @@ service cloud.firestore {
       }
     }
 
+    // Chats Collection
+    match /chats/{chatId} {
+      allow read: if canAccessChat();
+      allow create: if isAuthenticated() && isValidChatData();
+      allow update: if canAccessChat() && isValidChatUpdate();
+      allow delete: if isAdmin();
+
+      function canAccessChat() {
+        return isAuthenticated() &&
+               (request.auth.uid in resource.data.participants || isAdmin());
+      }
+
+      function isValidChatData() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['participants', 'createdAt']) &&
+               data.participants is list &&
+               data.participants.size() == 2 &&
+               request.auth.uid in data.participants &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+
+      function isValidChatUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.participants == existingData.participants &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if canAccessChat();
+        allow create: if canAccessChat() && isValidMessageData();
+        allow update: if canAccessChat() && isValidMessageUpdate();
+        allow delete: if isAdmin();
+
+        function isValidMessageData() {
+          let data = request.resource.data;
+          return data.keys().hasAll(['text', 'senderId', 'senderName', 'senderType', 'timestamp', 'isRead']) &&
+                 isValidString(data.text, 1, 5000) &&
+                 data.senderId == request.auth.uid &&
+                 isValidString(data.senderName, 1, 100) &&
+                 data.senderType in ['household', 'worker', 'admin'] &&
+                 data.timestamp == request.time &&
+                 data.isRead == false;
+        }
+
+        function isValidMessageUpdate() {
+          let data = request.resource.data;
+          let existingData = resource.data;
+          return data.text == existingData.text &&
+                 data.senderId == existingData.senderId &&
+                 data.timestamp == existingData.timestamp;
+        }
+      }
+    }
+
     // System Collections
     match /analytics/{document=**} {
       allow read, write: if isAdmin();

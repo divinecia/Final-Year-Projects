@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     
     // Get conversations where user is a participant
     const q = query(
-      collection(db, 'conversations'),
+      collection(db, 'chats'),
       where('participants', 'array-contains', validatedParams.userId),
-      orderBy('lastMessageAt', 'desc')
+      orderBy('lastMessagedAt', 'desc')
     );
     
     const querySnapshot = await getDocs(q);
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
           conversationId: data.id || docSnapshot.id,
           otherParticipant,
           lastMessage: data.lastMessage || '',
-          lastMessageAt: data.lastMessageAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          lastMessageAt: data.lastMessagedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
           lastSenderId: data.lastSenderId || '',
           unreadCount: 0, // TODO: Calculate actual unread count
         };
