@@ -2,11 +2,11 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ciairadukunda@gmail.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'IRAcia12@';
-const ADMIN_PHONE = process.env.ADMIN_PHONE || '0780452019';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@househelp.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '@dM1Nd';
+const ADMIN_PHONE = process.env.ADMIN_PHONE || '0788123456';
 
-const ADMINS_COLLECTION = 'admins';
+const ADMINS_COLLECTION = 'admin';
 const USERS_COLLECTION = 'users';
 
 interface AdminLocation {
@@ -143,29 +143,41 @@ export async function seedAdminUser() {
       email: ADMIN_CONFIG.email
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error seeding admin user:', error);
 
-    if (error.code === 'auth/email-already-in-use') {
-      return {
-        success: false,
-        error: 'Email already in use. Admin might already exist.'
-      };
-    } else if (error.code === 'auth/weak-password') {
-      return {
-        success: false,
-        error: 'Password is too weak. Please use a stronger password.'
-      };
-    } else if (error.code === 'auth/invalid-email') {
-      return {
-        success: false,
-        error: 'Invalid email format.'
-      };
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      typeof (error as { code: unknown }).code === 'string'
+    ) {
+      const code = (error as { code: string }).code;
+      if (code === 'auth/email-already-in-use') {
+        return {
+          success: false,
+          error: 'Email already in use. Admin might already exist.'
+        };
+      } else if (code === 'auth/weak-password') {
+        return {
+          success: false,
+          error: 'Password is too weak. Please use a stronger password.'
+        };
+      } else if (code === 'auth/invalid-email') {
+        return {
+          success: false,
+          error: 'Invalid email format.'
+        };
+      }
     }
 
     return {
       success: false,
-      error: `Failed to create admin user: ${error.message}`
+      error: `Failed to create admin user: ${
+        typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message?: string }).message
+          : String(error)
+      }`
     };
   }
 }

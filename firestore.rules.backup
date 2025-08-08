@@ -1,16 +1,11 @@
 rules_version = '2';
 
-/**
- * Firestore Security Rules for HouseHelp Application
- * Ensures data security, proper authentication, and role-based access control
- */
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Helper Functions ---
+    
+    // Authentication helpers
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.uid != null;
     }
 
     function isOwner(userId) {
@@ -18,213 +13,387 @@ service cloud.firestore {
     }
 
     function isWorker() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/workers/$(request.auth.uid));
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/workers/$(request.auth.uid));
     }
 
     function isHousehold() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/households/$(request.auth.uid));
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/households/$(request.auth.uid));
     }
 
     function isAdmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    function isParticipantInConversation(conversationData) {
-      return isAuthenticated() && request.auth.uid in conversationData.participants;
+    // Allow initial admin creation for seeding
+    function isInitialAdmin() {
+      return isAuthenticated() && 
+             request.auth.email == 'ciairadukunda@gmail.com';
     }
 
-    function isValidTimestamp(ts) {
-      return ts is timestamp;
-    }
-
+    // Validation helpers
     function isValidEmail(email) {
-      return email is string && email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+      return email is string && 
+             email.size() > 0 && 
+             email.size() <= 254 &&
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
     }
 
     function isValidPhone(phone) {
-      return phone is string && phone.matches('^\\+?[0-9\\-\\(\\)\\s]{7,}$');
+      return phone is string && 
+             phone.size() >= 7 && 
+             phone.size() <= 20 &&
+             phone.matches('^\\+?[0-9\\-\\(\\)\\s]{7,20}$');
     }
 
-    // --- Workers Collection ---
+    function isValidString(str, minLen, maxLen) {
+      return str is string && 
+             str.size() >= minLen && 
+             str.size() <= maxLen;
+    }
+
+    function isValidPrice(price) {
+      return price is number && 
+             price >= 0 && 
+             price <= 1000000;
+    }
+
+    function isValidRating(rating) {
+      return rating is number && 
+             rating >= 1 && 
+             rating <= 5 && 
+             rating == int(rating);
+    }
+
+    function isValidLocation(location) {
+      return location is map &&
+             'province' in location &&
+             'district' in location &&
+             'municipality' in location &&
+             'neighborhood' in location &&
+             'street' in location &&
+             'houseNumber' in location &&
+             'postalCode' in location &&
+             'city' in location &&
+             'country' in location &&
+             'fullAddress' in location &&
+             location.province is string &&
+             location.district is string &&
+             location.municipality is string &&
+             location.neighborhood is string &&
+             location.street is string &&
+             location.houseNumber is string &&
+             location.postalCode is string &&
+             location.city is string &&
+             location.country is string &&
+             location.fullAddress is string &&
+             location.province.size() > 0 &&
+             location.district.size() > 0 &&
+             location.municipality.size() > 0 &&
+             location.neighborhood.size() > 0 &&
+             location.street.size() > 0 &&
+             location.houseNumber.size() > 0 &&
+             location.postalCode.size() > 0 &&
+             location.city.size() > 0 &&
+             location.country.size() > 0 &&
+             location.fullAddress.size() > 0;
+    }
+
+    function isValidServices(services) {
+      return services is list &&
+             services.size() > 0 &&
+             services.size() <= 20;
+    }
+
+    // Admin Collection - Allow initial admin creation
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (isAdmin() || isInitialAdmin());
+      allow create: if isInitialAdmin() || isAdmin();
+      allow update: if isOwner(adminId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Users Collection (for unified user lookup)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) || isAdmin() || isInitialAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Workers Collection
     match /workers/{workerId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(workerId) && isValidWorkerData();
+      allow create: if isOwner(workerId) && isValidWorkerData();
+      allow update: if isOwner(workerId) && isValidWorkerUpdate();
       allow delete: if isOwner(workerId) || isAdmin();
 
       function isValidWorkerData() {
-        return request.resource.data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location']) &&
-               isValidEmail(request.resource.data.email) &&
-               isValidPhone(request.resource.data.phone) &&
-               request.resource.data.services is list &&
-               request.resource.data.services.size() > 0 &&
-               request.resource.data.fullName is string &&
-               request.resource.data.location is map;
+        let data = request.resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidServices(data.services) &&
+               isValidLocation(data.location) &&
+               data.dateOfBirth is timestamp &&
+               data.gender in ['male', 'female', 'other'] &&
+               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+
+      function isValidWorkerUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'services', 'location', 'dateOfBirth', 'gender', 'status', 'createdAt', 'updatedAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidServices(data.services) &&
+               isValidLocation(data.location) &&
+               data.dateOfBirth is timestamp &&
+               data.gender in ['male', 'female', 'other'] &&
+               data.status in ['active', 'inactive', 'suspended', 'pending_verification'] &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+
+      match /documents/{documentId} {
+        allow read, write: if isOwner(workerId) || isAdmin();
+      }
+
+      match /availability/{availabilityId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(workerId);
       }
     }
 
-    // --- Households Collection ---
+    // Households Collection
     match /households/{householdId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(householdId) && isValidHouseholdData();
+      allow create: if isOwner(householdId) && isValidHouseholdData();
+      allow update: if isOwner(householdId) && isValidHouseholdUpdate();
       allow delete: if isOwner(householdId) || isAdmin();
 
       function isValidHouseholdData() {
-        return request.resource.data.keys().hasAll(['fullName', 'email', 'phone', 'location']) &&
-               isValidEmail(request.resource.data.email) &&
-               isValidPhone(request.resource.data.phone) &&
-               request.resource.data.fullName is string &&
-               request.resource.data.location is map;
+        let data = request.resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidLocation(data.location) &&
+               data.status in ['active', 'inactive', 'suspended'] &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
+      }
+
+      function isValidHouseholdUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['fullName', 'email', 'phone', 'location', 'status', 'createdAt', 'updatedAt']) &&
+               isValidString(data.fullName, 2, 100) &&
+               isValidEmail(data.email) &&
+               isValidPhone(data.phone) &&
+               isValidLocation(data.location) &&
+               data.status in ['active', 'inactive', 'suspended'] &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
       }
     }
 
-    // --- Admins Collection ---
-    match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow create, delete: if false; // Only server-side
-      allow update: if isOwner(adminId) && isAdmin();
-    }
-
-    // --- Jobs Collection ---
+    // Jobs Collection
     match /jobs/{jobId} {
       allow read: if isAuthenticated();
       allow create: if isHousehold() && isValidJobData();
-      allow update: if (
-        (isOwner(resource.data.householdId) && isValidJobData()) ||
-        (isWorker() && canApplyToJob()) ||
-        (isAdmin() && isValidJobData())
-      );
-      allow delete: if isOwner(resource.data.householdId) || isAdmin();
+      allow update: if canUpdateJob() && isValidJobUpdate();
+      allow delete: if (isOwner(resource.data.householdId) || isAdmin()) && canDeleteJob();
 
       function isValidJobData() {
-        return request.resource.data.keys().hasAll(['title', 'serviceType', 'householdId', 'status']) &&
-               request.resource.data.status in ['open', 'in_progress', 'completed', 'cancelled'] &&
-               request.resource.data.householdId == request.auth.uid &&
-               request.resource.data.title is string &&
-               request.resource.data.serviceType is string;
+        let data = request.resource.data;
+        return data.keys().hasAll(['title', 'description', 'serviceType', 'householdId', 'status', 'location', 'budget', 'createdAt']) &&
+               isValidString(data.title, 5, 200) &&
+               isValidString(data.description, 10, 2000) &&
+               isValidString(data.serviceType, 2, 100) &&
+               data.householdId == request.auth.uid &&
+               data.status == 'open' &&
+               isValidLocation(data.location) &&
+               isValidPrice(data.budget) &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time;
       }
 
-      function canApplyToJob() {
-        return request.resource.data.workerId == request.auth.uid &&
-               resource.data.status == 'open';
+      function isValidJobUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['title', 'description', 'serviceType', 'householdId', 'status', 'location', 'budget', 'createdAt', 'updatedAt']) &&
+               isValidString(data.title, 5, 200) &&
+               isValidString(data.description, 10, 2000) &&
+               isValidString(data.serviceType, 2, 100) &&
+               data.householdId == existingData.householdId &&
+               data.status in ['open', 'in_progress', 'completed', 'cancelled'] &&
+               isValidLocation(data.location) &&
+               isValidPrice(data.budget) &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+
+      function canUpdateJob() {
+        return isOwner(resource.data.householdId) || 
+               (isWorker() && 'assignedWorkerId' in resource.data && resource.data.assignedWorkerId == request.auth.uid) ||
+               isAdmin();
+      }
+
+      function canDeleteJob() {
+        return resource.data.status in ['open', 'cancelled'] || isAdmin();
+      }
+
+      // Job applications subcollection
+      match /applications/{applicationId} {
+        allow read: if isAuthenticated() && (
+          request.auth.uid == resource.data.workerId ||
+          request.auth.uid == get(/databases/$(database)/documents/jobs/$(jobId)).data.householdId ||
+          isAdmin()
+        );
+        allow create: if isWorker() && isValidJobApplication();
+        allow update: if canUpdateJobApplication();
+        allow delete: if isOwner(resource.data.workerId) || isAdmin();
+
+        function isValidJobApplication() {
+          let data = request.resource.data;
+          return data.keys().hasAll(['workerId', 'jobId', 'status', 'proposedPrice', 'message', 'createdAt']) &&
+                 data.workerId == request.auth.uid &&
+                 data.jobId == jobId &&
+                 data.status == 'pending' &&
+                 isValidPrice(data.proposedPrice) &&
+                 isValidString(data.message, 10, 1000) &&
+                 data.createdAt is timestamp &&
+                 data.createdAt == request.time;
+        }
+
+        function canUpdateJobApplication() {
+          return isOwner(resource.data.workerId) || 
+                 request.auth.uid == get(/databases/$(database)/documents/jobs/$(jobId)).data.householdId ||
+                 isAdmin();
+        }
       }
     }
 
-    // --- Bookings Collection ---
+    // Bookings Collection
     match /bookings/{bookingId} {
-      allow read: if isAuthenticated() &&
-        (request.auth.uid == resource.data.householdId ||
-         request.auth.uid == resource.data.workerId ||
-         isAdmin());
-      allow create, update: if isAuthenticated() && isValidBookingData();
-      allow delete: if isOwner(resource.data.householdId) || isAdmin();
+      allow read: if canAccessBooking();
+      allow create: if isAuthenticated() && isValidBookingData();
+      allow update: if canUpdateBooking() && isValidBookingUpdate();
+      allow delete: if (isOwner(resource.data.householdId) || isAdmin()) && canDeleteBooking();
+
+      function canAccessBooking() {
+        return isAuthenticated() &&
+               (request.auth.uid == resource.data.householdId ||
+                request.auth.uid == resource.data.workerId ||
+                isAdmin());
+      }
 
       function isValidBookingData() {
-        return request.resource.data.keys().hasAll(['jobId', 'householdId', 'workerId', 'status']) &&
-               request.resource.data.status in ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] &&
-               (request.auth.uid == request.resource.data.householdId ||
-                request.auth.uid == request.resource.data.workerId ||
-                isAdmin()) &&
-               request.resource.data.jobId is string;
+        let data = request.resource.data;
+        return data.keys().hasAll(['jobId', 'householdId', 'workerId', 'status', 'scheduledDate', 'estimatedPrice', 'createdAt']) &&
+               isValidString(data.jobId, 1, 100) &&
+               isValidString(data.householdId, 1, 100) &&
+               isValidString(data.workerId, 1, 100) &&
+               data.status == 'pending' &&
+               data.scheduledDate is timestamp &&
+               data.scheduledDate > request.time &&
+               isValidPrice(data.estimatedPrice) &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time &&
+               (request.auth.uid == data.householdId || request.auth.uid == data.workerId);
+      }
+
+      function isValidBookingUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['jobId', 'householdId', 'workerId', 'status', 'scheduledDate', 'estimatedPrice', 'createdAt', 'updatedAt']) &&
+               data.jobId == existingData.jobId &&
+               data.householdId == existingData.householdId &&
+               data.workerId == existingData.workerId &&
+               data.status in ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] &&
+               data.scheduledDate is timestamp &&
+               isValidPrice(data.estimatedPrice) &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time &&
+               data.createdAt == existingData.createdAt;
+      }
+
+      function canUpdateBooking() {
+        return isOwner(resource.data.householdId) ||
+               isOwner(resource.data.workerId) ||
+               isAdmin();
+      }
+
+      function canDeleteBooking() {
+        return resource.data.status in ['pending', 'cancelled'] || isAdmin();
       }
     }
 
-    // --- Conversations Collection ---
-    match /conversations/{conversationId} {
-      allow read: if isAuthenticated() && isParticipantInConversation(resource.data);
-      allow create, update: if isAuthenticated() && isValidConversationData();
-      allow delete: if isAdmin();
-
-      function isValidConversationData() {
-        return request.resource.data.keys().hasAll(['participants']) &&
-               request.resource.data.participants is list &&
-               request.resource.data.participants.size() == 2 &&
-               request.auth.uid in request.resource.data.participants;
-      }
-    }
-
-    // --- Messages Collection ---
-    match /messages/{messageId} {
-      allow read: if isAuthenticated() && canAccessMessage();
-      allow create: if isAuthenticated() && isValidMessageData();
-      allow update: if isOwner(resource.data.senderId) && isValidMessageData();
-      allow delete: if isOwner(resource.data.senderId) || isAdmin();
-
-      function canAccessMessage() {
-        return exists(/databases/$(database)/documents/conversations/$(resource.data.conversationId)) &&
-               isParticipantInConversation(get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data);
-      }
-
-      function isValidMessageData() {
-        return request.resource.data.keys().hasAll(['conversationId', 'senderId', 'content', 'timestamp']) &&
-               request.resource.data.senderId == request.auth.uid &&
-               isValidTimestamp(request.resource.data.timestamp) &&
-               request.resource.data.content is string;
-      }
-    }
-
-    // --- Reviews Collection ---
+    // Reviews Collection
     match /reviews/{reviewId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidReviewData();
-      allow update: if isOwner(resource.data.householdId) && isValidReviewData();
+      allow update: if isOwner(resource.data.householdId) && isValidReviewUpdate();
       allow delete: if isOwner(resource.data.householdId) || isAdmin();
 
       function isValidReviewData() {
-        return request.resource.data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'rating', 'comment']) &&
-               request.resource.data.householdId == request.auth.uid &&
-               request.resource.data.rating is number &&
-               request.resource.data.rating >= 1 &&
-               request.resource.data.rating <= 5 &&
-               request.resource.data.comment is string;
+        let data = request.resource.data;
+        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'rating', 'comment', 'createdAt']) &&
+               isValidString(data.bookingId, 1, 100) &&
+               data.householdId == request.auth.uid &&
+               isValidString(data.workerId, 1, 100) &&
+               isValidRating(data.rating) &&
+               isValidString(data.comment, 5, 2000) &&
+               data.createdAt is timestamp &&
+               data.createdAt == request.time &&
+               exists(/databases/$(database)/documents/bookings/$(data.bookingId)) &&
+               get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.status == 'completed' &&
+               get(/databases/$(database)/documents/bookings/$(data.bookingId)).data.householdId == request.auth.uid;
+      }
+
+      function isValidReviewUpdate() {
+        let data = request.resource.data;
+        let existingData = resource.data;
+        return data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'rating', 'comment', 'createdAt', 'updatedAt']) &&
+               data.bookingId == existingData.bookingId &&
+               data.householdId == existingData.householdId &&
+               data.workerId == existingData.workerId &&
+               isValidRating(data.rating) &&
+               isValidString(data.comment, 5, 2000) &&
+               data.createdAt == existingData.createdAt &&
+               data.updatedAt is timestamp &&
+               data.updatedAt == request.time;
       }
     }
 
-    // --- Payments Collection ---
-    match /payments/{paymentId} {
-      allow read: if isAuthenticated() &&
-        (request.auth.uid == resource.data.householdId ||
-         request.auth.uid == resource.data.workerId ||
-         isAdmin());
-      allow create, update: if isAuthenticated() && isValidPaymentData();
-      allow delete: if isAdmin();
-
-      function isValidPaymentData() {
-        return request.resource.data.keys().hasAll(['bookingId', 'householdId', 'workerId', 'amount', 'status']) &&
-               request.resource.data.amount is number &&
-               request.resource.data.amount > 0 &&
-               request.resource.data.status in ['pending', 'processing', 'completed', 'failed', 'refunded'];
-      }
-    }
-
-    // --- Notifications Collection ---
-    match /notifications/{notificationId} {
-      allow read: if isOwner(resource.data.userId);
-      allow create, update: if isOwner(request.resource.data.userId) && isValidNotificationData();
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
-
-      function isValidNotificationData() {
-        return request.resource.data.keys().hasAll(['userId', 'title', 'message', 'type']) &&
-               request.resource.data.type in ['job_application', 'booking_confirmed', 'payment_received', 'message_received', 'system'] &&
-               request.resource.data.title is string &&
-               request.resource.data.message is string;
-      }
-    }
-
-    // --- Analytics Collection (Admin Only) ---
+    // System Collections
     match /analytics/{document=**} {
       allow read, write: if isAdmin();
     }
 
-    // --- System Configuration (Admin Only) ---
     match /config/{document=**} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // --- Audit Logs (Admin Only) ---
-    match /audit_logs/{document=**} {
-      allow read: if isAdmin();
-      allow write: if false; // Only server-side writes allowed
+    match /metadata/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Default deny rule
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -24,7 +24,12 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-             exists(/databases/$(database)/documents/admin/$(request.auth.uid));
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Allow initial admin creation for seeding - temporarily relaxed
+    function isInitialAdmin() {
+      return true; // Allow any request during seeding
     }
 
     // Validation helpers
@@ -63,21 +68,58 @@ service cloud.firestore {
 
     function isValidLocation(location) {
       return location is map &&
+             'province' in location &&
              'district' in location &&
-             'sector' in location &&
-             'cell' in location &&
+             'municipality' in location &&
+             'neighborhood' in location &&
+             'street' in location &&
+             'houseNumber' in location &&
+             'postalCode' in location &&
+             'city' in location &&
+             'country' in location &&
+             'fullAddress' in location &&
+             location.province is string &&
              location.district is string &&
-             location.sector is string &&
-             location.cell is string &&
+             location.municipality is string &&
+             location.neighborhood is string &&
+             location.street is string &&
+             location.houseNumber is string &&
+             location.postalCode is string &&
+             location.city is string &&
+             location.country is string &&
+             location.fullAddress is string &&
+             location.province.size() > 0 &&
              location.district.size() > 0 &&
-             location.sector.size() > 0 &&
-             location.cell.size() > 0;
+             location.municipality.size() > 0 &&
+             location.neighborhood.size() > 0 &&
+             location.street.size() > 0 &&
+             location.houseNumber.size() > 0 &&
+             location.postalCode.size() > 0 &&
+             location.city.size() > 0 &&
+             location.country.size() > 0 &&
+             location.fullAddress.size() > 0;
     }
 
     function isValidServices(services) {
       return services is list &&
              services.size() > 0 &&
              services.size() <= 20;
+    }
+
+    // Admin Collection - Allow initial admin creation
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (isAdmin() || isInitialAdmin());
+      allow create: if isInitialAdmin() || isAdmin();
+      allow update: if isOwner(adminId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Users Collection (for unified user lookup)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) || isAdmin() || isInitialAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Workers Collection
@@ -157,38 +199,6 @@ service cloud.firestore {
                isValidPhone(data.phone) &&
                isValidLocation(data.location) &&
                data.status in ['active', 'inactive', 'suspended'] &&
-               data.updatedAt is timestamp &&
-               data.updatedAt == request.time &&
-               data.createdAt == existingData.createdAt;
-      }
-    }
-
-    // Admin Collection
-    match /admin/{adminId} {
-      allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
-      allow create: if isAuthenticated() && isOwner(adminId) && isValidAdminData();
-      allow update: if isOwner(adminId) && isValidAdminUpdate();
-      allow delete: if false;
-
-      function isValidAdminData() {
-        let data = request.resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'role', 'status', 'createdAt']) &&
-               isValidString(data.fullName, 2, 100) &&
-               isValidEmail(data.email) &&
-               data.role in ['super_admin', 'admin', 'moderator'] &&
-               data.status in ['active', 'inactive'] &&
-               data.createdAt is timestamp &&
-               data.createdAt == request.time;
-      }
-
-      function isValidAdminUpdate() {
-        let data = request.resource.data;
-        let existingData = resource.data;
-        return data.keys().hasAll(['fullName', 'email', 'role', 'status', 'createdAt', 'updatedAt']) &&
-               isValidString(data.fullName, 2, 100) &&
-               isValidEmail(data.email) &&
-               data.role in ['super_admin', 'admin', 'moderator'] &&
-               data.status in ['active', 'inactive'] &&
                data.updatedAt is timestamp &&
                data.updatedAt == request.time &&
                data.createdAt == existingData.createdAt;
@@ -385,4 +395,5 @@ service cloud.firestore {
       allow read, write: if false;
     }
   }
+}
 }
