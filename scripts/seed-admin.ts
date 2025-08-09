@@ -1,6 +1,20 @@
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import * as admin from 'firebase-admin';
+import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-ad129f5ed0.json';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
+  });
+}
+
+const adminDb = admin.firestore();
+const adminAuth = admin.auth();
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@househelp.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '@dM1Nd';
@@ -79,21 +93,32 @@ export async function seedAdminUser() {
     console.log('🌱 Starting admin user seeding...');
 
     // Check if admin already exists (by email as doc ID)
-    const adminDoc = await getDoc(doc(db, ADMINS_COLLECTION, ADMIN_CONFIG.email));
-    if (adminDoc.exists()) {
+    const adminDoc = await adminDb.collection(ADMINS_COLLECTION).doc(ADMIN_CONFIG.email).get();
+    if (adminDoc.exists) {
       console.log('⚠️ Admin user already exists, skipping creation');
       return { success: true, message: 'Admin user already exists' };
     }
 
-    // Create Firebase Auth user
-    console.log('👤 Creating Firebase Auth user...');
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      ADMIN_CONFIG.email,
-      ADMIN_CONFIG.password
-    );
+    // Check if user exists in Firebase Auth
+    let userRecord;
+    try {
+      userRecord = await adminAuth.getUserByEmail(ADMIN_CONFIG.email);
+      console.log('⚠️ Auth user exists, using existing user');
+    } catch (authError: unknown) {
+      if (authError instanceof Error && 'code' in authError && authError.code === 'auth/user-not-found') {
+        // Create Firebase Auth user using Admin SDK
+        console.log('👤 Creating Firebase Auth user...');
+        userRecord = await adminAuth.createUser({
+          email: ADMIN_CONFIG.email,
+          password: ADMIN_CONFIG.password,
+          emailVerified: true,
+        });
+      } else {
+        throw authError;
+      }
+    }
 
-    const userId = userCredential.user.uid;
+    const userId = userRecord.uid;
     const now = new Date().toISOString();
 
     // Prepare admin profile
@@ -107,7 +132,7 @@ export async function seedAdminUser() {
       location: ADMIN_CONFIG.location,
       userType: 'admin',
       isActive: true,
-      emailVerified: userCredential.user.emailVerified,
+      emailVerified: true,
       profileCompleted: true,
       createdAt: now,
       updatedAt: now,
@@ -119,11 +144,11 @@ export async function seedAdminUser() {
     };
 
     // Save to admins collection (use UID as doc ID)
-    await setDoc(doc(db, ADMINS_COLLECTION, userId), adminProfile);
+    await adminDb.collection(ADMINS_COLLECTION).doc(userId).set(adminProfile);
     console.log('✅ Admin profile created in Firestore');
 
     // Also save to users collection for unified user lookup
-    await setDoc(doc(db, USERS_COLLECTION, userId), {
+    await adminDb.collection(USERS_COLLECTION).doc(userId).set({
       ...adminProfile,
       collection: ADMINS_COLLECTION
     });
