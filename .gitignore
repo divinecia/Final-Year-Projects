@@ -15,6 +15,12 @@ coverage/
 .env
 .env.*
 !.env.example
+.env.local
+
+# Firebase Service Account Keys (CRITICAL SECURITY)
+config/*.json
+config/*firebase*.json
+*-firebase-adminsdk-*.json
 
 # Vercel
 .vercel/
