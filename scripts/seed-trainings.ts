@@ -193,7 +193,7 @@ async function createTrainingRecords() {
           
           // Training content
           modules: (() => {
-            const allModules = {
+            const allModules: { [key: string]: string[] } = {
               'basic_housekeeping': ['Room Cleaning', 'Kitchen Maintenance', 'Bathroom Sanitization', 'Organizing Skills'],
               'childcare_fundamentals': ['Child Development', 'Safety Protocols', 'Nutrition Basics', 'Activity Planning'],
               'elderly_care': ['Health Monitoring', 'Mobility Assistance', 'Medication Management', 'Companionship'],
@@ -225,7 +225,7 @@ async function createTrainingRecords() {
           
           // Skills gained
           skillsGained: (() => {
-            const skillsMap = {
+            const skillsMap: { [key: string]: string[] } = {
               'basic_housekeeping': ['Efficient cleaning techniques', 'Organization skills', 'Time management'],
               'customer_service': ['Communication skills', 'Problem solving', 'Professional behavior'],
               'first_aid': ['Emergency response', 'Medical assistance', 'Safety awareness'],
