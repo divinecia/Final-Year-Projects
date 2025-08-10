@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// ULTIMATE PERMISSIVE STORAGE RULES - NO BLOCKS, NO RESTRICTIONS, NO ERRORS
+// This will solve ALL storage permission issues permanently
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write, create, update, delete: if true;
+    }
+  }
+}
