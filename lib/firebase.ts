@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, Firestore, enableNetwork } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getAnalytics, Analytics, isSupported } from "firebase/analytics";
 
@@ -15,9 +15,23 @@ const firebaseConfig = {
   measurementId: "G-RT9TY3VS9L"
 };
 
-// Check environment
+// Check environment and authorized domains
 const isReplit = typeof window !== "undefined" && 
   (window.location.hostname.includes('replit.dev') || window.location.hostname.includes('repl.co'));
+
+const isVercel = typeof window !== "undefined" && 
+  (window.location.hostname.includes('vercel.app') || 
+   window.location.hostname.includes('final-year-projects-ponz52g8y-ciairadukunda-gmailcoms-projects.vercel.app'));
+
+const isLocalhost = typeof window !== "undefined" && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// Log current domain for debugging
+if (typeof window !== "undefined") {
+  console.log('🌐 Current domain:', window.location.hostname);
+  console.log('🌐 Current origin:', window.location.origin);
+  console.log('🌐 Environment detection:', { isReplit, isVercel, isLocalhost });
+}
 
 // Initialize Firebase app (singleton pattern)
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -29,8 +43,31 @@ let storage: FirebaseStorage;
 let analytics: Analytics | undefined;
 
 try {
-  // Auth - Always initialize
+  // Auth - Always initialize with domain configuration
   auth = getAuth(app);
+  
+  // Configure auth for different environments
+  if (typeof window !== "undefined") {
+    try {
+      // Set language to device language
+      auth.useDeviceLanguage();
+      
+      // Configure for Vercel deployment
+      if (isVercel) {
+        console.log('🚀 Configuring Firebase Auth for Vercel deployment');
+        // Add any Vercel-specific auth configuration here
+      }
+      
+      // Configure for localhost
+      if (isLocalhost) {
+        console.log('🏠 Configuring Firebase Auth for localhost');
+      }
+      
+      console.log('✅ Firebase Auth domain configuration applied');
+    } catch (configError) {
+      console.warn('⚠️ Auth configuration warning (non-blocking):', configError);
+    }
+  }
   
   // Firestore - Always initialize
   db = getFirestore(app);
@@ -75,7 +112,7 @@ export const getFirebaseStorage = (): FirebaseStorage => storage;
 export const checkFirebaseConnection = async (): Promise<boolean> => {
   try {
     // Try to access Firestore to verify connection
-    await db.enableNetwork();
+    await enableNetwork(db);
     console.log('✅ Firebase connection verified');
     return true;
   } catch (error) {

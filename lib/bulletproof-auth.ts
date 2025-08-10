@@ -6,7 +6,6 @@
 
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
@@ -19,6 +18,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { auth, db, handleFirebaseError } from './firebase';
+import { authenticateWithDomainHandling, getDomainInfo } from './domain-aware-auth';
 
 export type UserType = 'admin' | 'household' | 'worker';
 
@@ -41,7 +41,7 @@ export interface UserProfile {
 
 /**
  * BULLETPROOF EMAIL/PASSWORD SIGN IN
- * Always succeeds unless network is down
+ * Always succeeds unless network is down - NOW WITH DOMAIN HANDLING
  */
 export async function signInWithEmail(
   email: string,
@@ -50,10 +50,31 @@ export async function signInWithEmail(
 ): Promise<AuthResult> {
   try {
     console.log(`🔐 Attempting ${userType} login for:`, email);
+    console.log('🌐 Domain info:', getDomainInfo());
     
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    const user = result.user;
+    // Use domain-aware authentication
+    const authResult = await authenticateWithDomainHandling(email, password);
     
+    if (!authResult.success) {
+      // Handle domain-specific issues
+      if (authResult.domainIssue) {
+        console.error('🚫 FIREBASE DOMAIN ISSUE DETECTED:');
+        console.error('Solution: Add your Vercel domain to Firebase Console');
+        console.error('URL: https://console.firebase.google.com/project/househelp-42493/authentication/settings');
+        
+        return {
+          success: false,
+          error: `DOMAIN AUTHORIZATION REQUIRED: ${authResult.error}\n\nTo fix this:\n1. Go to Firebase Console > Authentication > Settings\n2. Add this domain to Authorized domains: ${getDomainInfo().hostname}`
+        };
+      }
+      
+      return {
+        success: false,
+        error: authResult.error
+      };
+    }
+    
+    const user = authResult.user!;
     console.log('✅ Firebase Auth successful, UID:', user.uid);
     
     // Check if user profile exists (optional, doesn't block login)
