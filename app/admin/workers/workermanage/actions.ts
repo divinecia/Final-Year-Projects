@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 
 // Firestore document data type
 type WorkerDoc = {
@@ -67,6 +68,12 @@ async function updateWorkerStatus(
   try {
     const workerRef = doc(db, 'workers', workerId);
     await updateDoc(workerRef, { status });
+    
+    // Revalidate the workers page to show updated data
+    revalidatePath('/admin/workers');
+    revalidatePath('/admin/workers/workermanage');
+    revalidatePath('/admin/dashboard');
+    
     return { success: true };
   } catch (error: unknown) {
     if (typeof error === "object" && error !== null && "message" in error) {
@@ -95,6 +102,12 @@ export async function deleteWorker(
   try {
     const workerRef = doc(db, 'workers', workerId);
     await deleteDoc(workerRef);
+    
+    // Revalidate the workers page to show updated data
+    revalidatePath('/admin/workers');
+    revalidatePath('/admin/workers/workermanage');
+    revalidatePath('/admin/dashboard');
+    
     return { success: true };
   } catch (error: unknown) {
     if (typeof error === "object" && error !== null && "message" in error) {

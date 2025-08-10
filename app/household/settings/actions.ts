@@ -15,6 +15,8 @@ export const HouseholdSettingsSchema = z.object({
 
 export type HouseholdSettingsData = z.infer<typeof HouseholdSettingsSchema>;
 
+export type HouseholdSettingsUpdate = Partial<HouseholdSettingsData>;
+
 export type HouseholdProfile = HouseholdSettingsData & {
   id: string;
 };
@@ -49,21 +51,31 @@ export async function getHouseholdProfile(userId: string): Promise<HouseholdProf
 }
 
 
-export async function updateHouseholdProfile(householdId: string, data: HouseholdSettingsData): Promise<{ success: boolean }> {
+export async function updateHouseholdProfile(householdId: string, data: Partial<HouseholdSettingsData>): Promise<{ success: boolean; error?: string }> {
+    if (!householdId || !data) {
+        return { success: false, error: "Invalid household ID or data." };
+    }
+
+    try {
+        const householdRef = doc(db, 'households', householdId);
+        await updateDoc(householdRef, data);
+        revalidatePath('/household/settings');
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating household profile:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update profile.';
+        return { success: false, error: errorMessage };
+    }
+}
+
+export async function updateHouseholdPhoto(householdId: string, photoURL: string): Promise<{ success: boolean }> {
   try {
     const householdRef = doc(db, 'households', householdId);
-    
-    const dataToUpdate = {
-        fullName: data.fullName,
-        email: data.email,
-        // photoURL: would be updated here after file upload
-    };
-
-    await updateDoc(householdRef, dataToUpdate);
+    await updateDoc(householdRef, { photoURL });
     revalidatePath('/household/settings');
     return { success: true };
   } catch (error) {
-    console.error("Error updating household profile: ", error);
+    console.error("Error updating household photo: ", error);
     return { success: false };
   }
 }

@@ -21,6 +21,7 @@ import { serviceOptions } from "@/lib/services"
 import { Slider } from "@/components/ui/slider"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { WorkerSettingsSchema, type WorkerProfile } from "@/lib/schemas/worker"
+import { uploadFile } from "@/lib/storage"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 import { InsuranceSelection } from "./insurance-selection"
@@ -94,15 +95,46 @@ export default function WorkerSettingsPage() {
     }, [user, form, toast]);
 
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-                // In a real app, you would also upload this file
-            };
-            reader.readAsDataURL(file);
+        if (file && user) {
+            try {
+                toast({ title: "Uploading photo..." });
+                
+                // Upload to Firebase Storage
+                const photoURL = await uploadFile(file, `workers/${user.uid}/profile/`);
+                
+                // Update local preview
+                setProfileImage(photoURL);
+                
+                // Update profile in database via API
+                if (worker) {
+                    const response = await fetch('/api/worker/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            workerId: worker.id,
+                            data: { profilePictureUrl: photoURL },
+                        }),
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to update profile');
+                }
+                
+                toast({
+                    title: "Photo Updated",
+                    description: "Your profile photo has been updated successfully.",
+                });
+            } catch (error) {
+                console.error('Photo upload error:', error);
+                toast({
+                    variant: "destructive",
+                    title: "Upload Failed",
+                    description: "Could not upload your photo. Please try again.",
+                });
+            }
         }
     };
 

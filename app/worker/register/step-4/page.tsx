@@ -230,14 +230,15 @@ export default function WorkerRegisterStep4Page() {
 
     const handleClick = () => {
       if (capture && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
-        if (capture && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
         // For selfie with camera capture, ensure camera access
         const constraints: MediaStreamConstraints = {
           video: capture === true ? { facingMode: 'user' } : { facingMode: capture as 'user' | 'environment' }
         };
         
         navigator.mediaDevices.getUserMedia(constraints)
-          .then(() => {
+          .then((stream) => {
+            // Stop the stream immediately since we just needed to check permission
+            stream.getTracks().forEach(track => track.stop());
             fileInputRef.current?.click();
           })
           .catch((error) => {
@@ -245,13 +246,11 @@ export default function WorkerRegisterStep4Page() {
             toast({
               variant: "destructive",
               title: "Camera Access Required",
-              description: "Camera access is required for selfie capture"
+              description: "Camera access is required for selfie capture. Please allow camera access and try again.",
             });
-            return;
+            // Still allow file selection as fallback
+            fileInputRef.current?.click();
           });
-      } else {
-        fileInputRef.current?.click();
-      }
       } else {
         fileInputRef.current?.click();
       }

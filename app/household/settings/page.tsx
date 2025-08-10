@@ -27,8 +27,6 @@ export default function SettingsPage() {
     const [isReportFormOpen, setIsReportFormOpen] = React.useState(false);
     const [profile, setProfile] = React.useState<HouseholdProfile | null>(null);
     const [loading, setLoading] = React.useState(true);
-    const [profileImage, setProfileImage] = React.useState<string | null>(null);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof HouseholdSettingsSchema>>({
@@ -47,7 +45,6 @@ export default function SettingsPage() {
             if (profileData) {
                 setProfile(profileData);
                 form.reset(profileData);
-                // In a real app, you would load profileData.photoURL
             } else {
                 toast({
                     variant: "destructive",
@@ -60,24 +57,11 @@ export default function SettingsPage() {
         loadProfile();
     }, [user, form, toast]);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-                // In a real app, you would also get a file handle to upload
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     async function onSubmit(values: z.infer<typeof HouseholdSettingsSchema>) {
         if (!profile?.id) return;
         
         toast({ title: "Updating profile..." });
         
-        // Here you would typically upload the image and get a URL first
         const result = await updateHouseholdProfile(profile.id, values);
 
         if (result.success) {
@@ -133,17 +117,12 @@ export default function SettingsPage() {
                     <CardContent className="space-y-6">
                         <div className="flex items-center gap-4">
                             <Avatar className="h-20 w-20">
-                                <AvatarImage src={profileImage || "https://placehold.co/100x100.png"} data-ai-hint="woman portrait" />
+                                <AvatarImage src="https://placehold.co/100x100.png" />
                                 <AvatarFallback>{profile?.fullName?.charAt(0) || 'U'}</AvatarFallback>
                             </Avatar>
-                            <Input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={handleFileChange} 
-                            />
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>Change Photo</Button>
+                            <div className="text-sm text-muted-foreground">
+                                Photo upload coming soon
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField

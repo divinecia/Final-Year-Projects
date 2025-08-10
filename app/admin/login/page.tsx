@@ -32,6 +32,8 @@ const formSchema = z.object({
 export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -42,6 +44,8 @@ export default function AdminLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isRedirecting) return; // Prevent multiple submissions
+    
     toast({
       title: "Logging In...",
       description: "Authenticating administrator.",
@@ -86,17 +90,23 @@ export default function AdminLoginPage() {
         }
       }
 
+      // Update last login
       await updateDoc(doc(db, "admin", userId), {
         lastLogin: new Date(),
         updatedAt: new Date(),
       });
 
+      // Show success message and set redirecting state
+      setIsRedirecting(true);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${adminData.fullName || "Administrator"}!`,
+        description: `Welcome back, ${adminData.fullName || "Administrator"}! Redirecting...`,
       });
 
-      router.push("/admin/dashboard");
+      // Small delay to ensure auth state is updated, then redirect
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+      }, 1000);
     } catch (error: unknown) {
       let errorMessage = "Login failed. Please try again.";
       if (typeof error === "object" && error !== null && "code" in error) {
@@ -204,8 +214,8 @@ export default function AdminLoginPage() {
                   </Button>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Logging In..." : "Secure Login"}
+                <Button type="submit" className="w-full" disabled={isSubmitting || isRedirecting}>
+                  {isRedirecting ? "Redirecting..." : isSubmitting ? "Logging In..." : "Secure Login"}
                 </Button>
               </form>
             </Form>

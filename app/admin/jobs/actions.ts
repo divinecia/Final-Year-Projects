@@ -1,3 +1,5 @@
+'use server';
+
 import { db } from '@/lib/firebase';
 import {
     collection,
@@ -12,6 +14,7 @@ import {
     addDoc,
     DocumentData,
 } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 
 export type Job = {
     id: string;
@@ -52,7 +55,9 @@ export async function approveJob(jobId: string): Promise<{ success: boolean; err
         const jobSnap = await getDoc(jobRef);
         const jobData = jobSnap.data() as DocumentData | undefined;
 
-        // Note: revalidatePath calls moved to server actions
+        // Revalidate relevant pages to show updated data
+        revalidatePath('/admin/jobs');
+        revalidatePath('/admin/dashboard');
 
         if (jobData?.householdId) {
             await createNotification({
@@ -98,7 +103,11 @@ export async function getJobs(): Promise<Job[]> {
 export async function deleteJob(jobId: string): Promise<{ success: boolean; error?: string }> {
     try {
         await deleteDoc(doc(db, 'jobs', jobId));
-        // Note: revalidatePath calls moved to server actions
+        
+        // Revalidate relevant pages to show updated data
+        revalidatePath('/admin/jobs');
+        revalidatePath('/admin/dashboard');
+        
         return { success: true };
     } catch (error) {
         console.error("Error deleting job: ", error);
@@ -133,7 +142,9 @@ export async function assignWorkerToJob(
             });
         }
 
-        // Note: revalidatePath calls moved to server actions
+        // Revalidate relevant pages to show updated data
+        revalidatePath('/admin/jobs');
+        revalidatePath('/admin/dashboard');
 
         return { success: true };
     } catch (error) {

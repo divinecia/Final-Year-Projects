@@ -20,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { signIn } from "@/lib/auth";
+import { OAuthButtons } from "@/components/oauth-buttons";
+import { db } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email."),
@@ -30,6 +32,8 @@ const formSchema = z.object({
 export default function HouseholdLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,6 +44,8 @@ export default function HouseholdLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isRedirecting) return; // Prevent multiple submissions
+    
     // Show initial loading state
     toast({ title: "Logging in...", description: "Please wait while we verify your credentials." });
     
@@ -56,7 +62,8 @@ export default function HouseholdLoginPage() {
       ]);
 
       if (result.success) {
-        // Show success message
+        // Show success message and set redirecting state
+        setIsRedirecting(true);
         toast({ 
           title: "Login Successful! ✅", 
           description: "Welcome back! Redirecting to your dashboard...",
@@ -80,13 +87,55 @@ export default function HouseholdLoginPage() {
       }
     } catch (error) {
       // Handle timeout or other errors
+      console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Login Timeout",
-        description: error instanceof Error ? error.message : "Login is taking too long. Please check your connection and try again.",
+        description: "The request is taking too long. Please check your connection and try again.",
       });
     }
   }
+
+  // Handle social media authentication success
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSocialSuccess = async (userId: string, _email: string) => {
+    setIsRedirecting(true);
+    
+    try {
+      // Check if user exists in households collection
+      const { doc, getDoc } = await import("firebase/firestore");
+      const userDoc = await getDoc(doc(db, "households", userId));
+      
+      toast({
+        title: "Login Successful! ✅",
+        description: "Welcome! Redirecting to your dashboard...",
+        duration: 3000
+      });
+      
+      setTimeout(() => {
+        if (!userDoc.exists()) {
+          // New user - redirect to complete registration
+          router.push("/household/register/step-2");
+        } else {
+          // Existing user - go to dashboard
+          router.push("/household/dashboard");
+        }
+      }, 1500);
+    } catch (error) {
+      console.error('Error checking user profile:', error);
+      // Default to dashboard if error occurs
+      router.push("/household/dashboard");
+    }
+  };
+
+  // Handle social media authentication error
+  const handleSocialError = (error: string) => {
+    toast({
+      variant: "destructive",
+      title: "Social Login Failed",
+      description: error,
+    });
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-gray-50">
@@ -136,11 +185,18 @@ export default function HouseholdLoginPage() {
                                     <Link href="/forgot-password">Forgot Password?</Link>
                                 </Button>
                             </div>
-                            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                               {form.formState.isSubmitting ? "Logging in..." : "Login"}
+                            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || isRedirecting}>
+                               {isRedirecting ? "Redirecting..." : form.formState.isSubmitting ? "Logging in..." : "Login"}
                             </Button>
                         </form>
                     </Form>
+                    
+                    {/* Social Media Login Options */}
+                    <OAuthButtons
+                      onSuccess={handleSocialSuccess}
+                      onError={handleSocialError}
+                      disabled={form.formState.isSubmitting || isRedirecting}
+                    />
                 </CardContent>
             </Card>
             <div className="mt-4 text-center text-sm text-muted-foreground">
