@@ -60,22 +60,22 @@ export default function WorkerLoginPage() {
       ]);
 
       if (result.success) {
-        // Show success message with celebration and set redirecting state
+        // Show success message and set redirecting state
         setIsRedirecting(true);
         toast({ 
           title: "Login Successful! ✅", 
-          description: "Welcome back! Redirecting to your dashboard...",
-          duration: 3000
+          description: "Welcome back!",
+          duration: 2000
         });
         
-        // Small delay to show success message before redirect
+        // Instant redirect for better performance
         setTimeout(() => {
           if (result.isNewUser) {
             router.push("/worker/register");
           } else {
             router.push("/worker/dashboard");
           }
-        }, 1500);
+        }, 100);
       } else {
         toast({
           variant: "destructive",
@@ -106,8 +106,8 @@ export default function WorkerLoginPage() {
       
       toast({
         title: "Login Successful! ✅",
-        description: "Welcome! Redirecting to your dashboard...",
-        duration: 3000
+        description: "Welcome!",
+        duration: 2000
       });
       
       setTimeout(() => {
@@ -118,7 +118,7 @@ export default function WorkerLoginPage() {
           // Existing user - go to dashboard
           router.push("/worker/dashboard");
         }
-      }, 1500);
+      }, 100);
     } catch (error) {
       console.error('Error checking user profile:', error);
       // Default to dashboard if error occurs
@@ -184,7 +184,7 @@ export default function WorkerLoginPage() {
                                 </Button>
                             </div>
                             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || isRedirecting}>
-                                {isRedirecting ? "Redirecting..." : form.formState.isSubmitting ? "Logging In..." : "Login"}
+                                {form.formState.isSubmitting ? "Logging In..." : "Login"}
                             </Button>
                         </form>
                     </Form>

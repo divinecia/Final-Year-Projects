@@ -66,18 +66,18 @@ export default function HouseholdLoginPage() {
         setIsRedirecting(true);
         toast({ 
           title: "Login Successful! ✅", 
-          description: "Welcome back! Redirecting to your dashboard...",
-          duration: 3000
+          description: "Welcome back!",
+          duration: 2000
         });
         
-        // Small delay to show success message before redirect
+        // Instant redirect for better performance
         setTimeout(() => {
           if (result.isNewUser) {
             router.push("/household/register");
           } else {
             router.push("/household/dashboard");
           }
-        }, 1500);
+        }, 100);
       } else {
         toast({
           variant: "destructive",
@@ -108,8 +108,8 @@ export default function HouseholdLoginPage() {
       
       toast({
         title: "Login Successful! ✅",
-        description: "Welcome! Redirecting to your dashboard...",
-        duration: 3000
+        description: "Welcome!",
+        duration: 2000
       });
       
       setTimeout(() => {
@@ -120,7 +120,7 @@ export default function HouseholdLoginPage() {
           // Existing user - go to dashboard
           router.push("/household/dashboard");
         }
-      }, 1500);
+      }, 100);
     } catch (error) {
       console.error('Error checking user profile:', error);
       // Default to dashboard if error occurs
@@ -186,7 +186,7 @@ export default function HouseholdLoginPage() {
                                 </Button>
                             </div>
                             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || isRedirecting}>
-                               {isRedirecting ? "Redirecting..." : form.formState.isSubmitting ? "Logging in..." : "Login"}
+                               {form.formState.isSubmitting ? "Logging in..." : "Login"}
                             </Button>
                         </form>
                     </Form>

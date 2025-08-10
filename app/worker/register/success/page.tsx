@@ -12,7 +12,7 @@ export default function RegistrationSuccessPage() {
     React.useEffect(() => {
         const timer = setTimeout(() => {
             router.push('/worker/login');
-        }, 5000);
+        }, 2000);
         return () => clearTimeout(timer);
     }, [router]);
 

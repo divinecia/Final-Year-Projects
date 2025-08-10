@@ -100,13 +100,13 @@ export default function AdminLoginPage() {
       setIsRedirecting(true);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${adminData.fullName || "Administrator"}! Redirecting...`,
+        description: `Welcome back, ${adminData.fullName || "Administrator"}!`,
       });
 
-      // Small delay to ensure auth state is updated, then redirect
+      // Instant redirect for better performance
       setTimeout(() => {
         router.push("/admin/dashboard");
-      }, 1000);
+      }, 100);
     } catch (error: unknown) {
       let errorMessage = "Login failed. Please try again.";
       if (typeof error === "object" && error !== null && "code" in error) {
@@ -215,7 +215,7 @@ export default function AdminLoginPage() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isSubmitting || isRedirecting}>
-                  {isRedirecting ? "Redirecting..." : isSubmitting ? "Logging In..." : "Secure Login"}
+                  {isSubmitting ? "Logging In..." : "Secure Login"}
                 </Button>
               </form>
             </Form>

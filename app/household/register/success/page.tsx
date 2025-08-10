@@ -12,7 +12,7 @@ export default function HouseholdRegistrationSuccessPage() {
     React.useEffect(() => {
         const timer = setTimeout(() => {
             router.push('/household/login');
-        }, 5000);
+        }, 2000);
         return () => clearTimeout(timer);
     }, [router]);
 
