@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const userId = userCredential.user.uid;
 
-      const adminDoc = await getDoc(doc(db, "admins", userId));
+      const adminDoc = await getDoc(doc(db, "admin", userId));
       if (!adminDoc.exists()) {
         await auth.signOut();
         toast({
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
         }
       }
 
-      await updateDoc(doc(db, "admins", userId), {
+      await updateDoc(doc(db, "admin", userId), {
         lastLogin: new Date(),
         updatedAt: new Date(),
       });
