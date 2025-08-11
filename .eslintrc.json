@@ -2,5 +2,13 @@
   "extends": [
     "next/core-web-vitals",
     "next/typescript"
+  ],
+  "overrides": [
+    {
+      "files": ["scripts/*.js"],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off"
+      }
+    }
   ]
 }
