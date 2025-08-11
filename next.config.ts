@@ -26,7 +26,17 @@ const nextConfig: NextConfig = {
   }),
   
   // Output configuration for deployment
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: process.env.BUILD_TARGET === 'static' ? 'export' : 
+          process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  
+  // Static export configuration
+  ...(process.env.BUILD_TARGET === 'static' && {
+    trailingSlash: true,
+    skipTrailingSlashRedirect: true,
+    distDir: 'out',
+    // Skip API routes during static export as they require server-side functionality
+    generateBuildId: () => 'static-build',
+  }),
   
   // Build settings
   typescript: {
@@ -38,6 +48,9 @@ const nextConfig: NextConfig = {
   
   // Image optimizations
   images: {
+    ...(process.env.BUILD_TARGET === 'static' && {
+      unoptimized: true, // Required for static export
+    }),
     remotePatterns: [
       {
         protocol: 'https',
@@ -57,28 +70,30 @@ const nextConfig: NextConfig = {
     ],
   },  
   
-  // Headers for security
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
-      },
-    ];
-  },
+  // Headers for security (only in server mode)
+  ...(!process.env.BUILD_TARGET && {
+    async headers() {
+      return [
+        {
+          source: '/(.*)',
+          headers: [
+            {
+              key: 'X-Content-Type-Options',
+              value: 'nosniff',
+            },
+            {
+              key: 'X-Frame-Options',
+              value: 'DENY',
+            },
+            {
+              key: 'X-XSS-Protection',
+              value: '1; mode=block',
+            },
+          ],
+        },
+      ];
+    },
+  }),
   
   // Webpack configuration for both warnings suppression and path resolution
   webpack: (config: import('webpack').Configuration, { isServer }: { isServer: boolean }) => {
