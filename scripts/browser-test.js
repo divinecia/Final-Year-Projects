@@ -13,7 +13,7 @@ const testAdminLogin = async () => {
     const auth = window.firebase?.auth || (await import('/config/firebase.ts')).auth;
     const db = window.firebase?.db || (await import('/config/firebase.ts')).db;
     
-    const email = 'admin@househelp.com';
+    const email = '';
     const password = '@dM1Nd';
     
     // Step 1: Sign in
