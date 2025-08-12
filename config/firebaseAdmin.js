@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import serviceAccountFallback from "./househelp-42493-firebase-adminsdk-fbsvc-ad129f5ed0.json" assert { type: "json" };
+import serviceAccountFallback from "./househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json" assert { type: "json" };
 
 // Use environment variables for consistency with other admin configs
 const createServiceAccount = () => {

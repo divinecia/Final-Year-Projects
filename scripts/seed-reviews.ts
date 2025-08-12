@@ -5,7 +5,7 @@
  */
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-ad129f5ed0.json';
+import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -145,10 +145,12 @@ async function createReviews() {
 
       // Filter out undefined values
       if (reviewData.improvementSuggestions === undefined) {
-        delete (reviewData as any).improvementSuggestions;
+        const filteredReview = { ...reviewData };
+        delete filteredReview.improvementSuggestions;
+        await adminDb.collection('reviews').add(filteredReview);
+      } else {
+        await adminDb.collection('reviews').add(reviewData);
       }
-
-      await adminDb.collection('reviews').add(reviewData);
       console.log(`✅ Review created: ${household.firstName} → ${worker.firstName} (${rating}⭐)`);
     }
 

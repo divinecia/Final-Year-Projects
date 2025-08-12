@@ -15,20 +15,16 @@
         { "fieldPath": "authorId", "order": "ASCENDING" },
         { "fieldPath": "published", "order": "DESCENDING" }
       ]
-    }
-  ],
-  "fieldOverrides": [
+    },
     {
-      "collectionGroup": "users",
-      "fieldPath": "bio",
-      "ttl": null,
+      "collectionGroup": "workers",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "bio", "order": "ASCENDING" }
-      ],
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "fullName", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }
