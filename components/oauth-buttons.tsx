@@ -16,6 +16,14 @@ export function OAuthButtons({ onSuccess, onError, disabled = false }: OAuthButt
     try {
       const result = await signInWithGoogle();
       if (result.success && result.user) {
+        // Set session cookie for middleware
+        const idToken = await result.user.getIdToken();
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
         toast({
           title: "Google Sign-in Successful",
           description: "You&apos;ve been signed in with Google.",
@@ -45,6 +53,14 @@ export function OAuthButtons({ onSuccess, onError, disabled = false }: OAuthButt
     try {
       const result = await signInWithGitHub();
       if (result.success && result.user) {
+        // Set session cookie for middleware
+        const idToken = await result.user.getIdToken();
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
         toast({
           title: "GitHub Sign-in Successful",
           description: "You&apos;ve been signed in with GitHub.",

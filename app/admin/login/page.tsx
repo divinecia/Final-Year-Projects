@@ -103,6 +103,14 @@ export default function AdminLoginPage() {
         description: `Welcome back, ${adminData.fullName || "Administrator"}!`,
       });
 
+      // Set session cookie for middleware
+      const idToken = await userCredential.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
       // Instant redirect for better performance
       setTimeout(() => {
         router.push("/admin/dashboard");

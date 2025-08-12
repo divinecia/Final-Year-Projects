@@ -70,6 +70,17 @@ export default function HouseholdLoginPage() {
           duration: 2000
         });
         
+        // Set session cookie for middleware
+        if (result.user?.uid) {
+          // Get the ID token and set it as a session cookie
+          const idToken = await result.user.getIdToken();
+          await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+        }
+        
         // Instant redirect for better performance
         setTimeout(() => {
           if (result.isNewUser) {

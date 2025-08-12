@@ -26,7 +26,7 @@ import {
 } from 'firebase/auth';
 export async function signInWithGoogle(
   userType: UserType
-): Promise<{ success: boolean; isNewUser?: boolean; error?: string }> {
+): Promise<{ success: boolean; isNewUser?: boolean; user?: import('firebase/auth').User; error?: string }> {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
   try {
@@ -35,7 +35,7 @@ export async function signInWithGoogle(
 
     const profileExists = await userProfileExists(user.uid, userType);
 
-    return { success: true, isNewUser: !profileExists };
+    return { success: true, isNewUser: !profileExists, user: user };
   } catch (error: unknown) {
     console.error('Google sign in error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
@@ -88,7 +88,7 @@ export async function signInWithEmailAndPasswordHandler(
   email: string,
   password: string,
   userType: UserType
-): Promise<{ success: boolean; isNewUser?: boolean; error?: string }> {
+): Promise<{ success: boolean; isNewUser?: boolean; user?: import('firebase/auth').User; error?: string }> {
   const auth = await getFirebaseAuth();
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -99,7 +99,7 @@ export async function signInWithEmailAndPasswordHandler(
       return { success: false, error: "User profile not found for this role." };
     }
 
-    return { success: true, isNewUser: !profileExists };
+    return { success: true, isNewUser: !profileExists, user: userCredential.user };
   } catch (error: unknown) {
     console.error('Sign in error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in';
@@ -109,7 +109,7 @@ export async function signInWithEmailAndPasswordHandler(
 
 export async function signInWithGitHub(
   userType: UserType
-): Promise<{ success: boolean; isNewUser?: boolean; error?: string }> {
+): Promise<{ success: boolean; isNewUser?: boolean; user?: import('firebase/auth').User; error?: string }> {
   const auth = getAuth(app);
   const provider = new GithubAuthProvider();
   try {
@@ -118,7 +118,7 @@ export async function signInWithGitHub(
 
     const profileExists = await userProfileExists(user.uid, userType);
 
-    return { success: true, isNewUser: !profileExists };
+    return { success: true, isNewUser: !profileExists, user: user };
   } catch (error: unknown) {
     console.error('GitHub sign in error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with GitHub';
@@ -141,6 +141,13 @@ export async function verifyPasswordResetCode(
 export async function signOut(): Promise<void> {
   const auth = await getFirebaseAuth();
   await firebaseSignOut(auth);
+  
+  // Clear session cookie
+  try {
+    await fetch('/api/auth/session', { method: 'DELETE' });
+  } catch (error) {
+    console.error('Failed to clear session cookie:', error);
+  }
 }
 
 // Alias for compatibility with login pages
