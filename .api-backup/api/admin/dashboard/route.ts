@@ -7,7 +7,8 @@
  * Optimized for maintainability, type safety, and performance.
  */
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { db } from '../../../../lib/firebase';
+import { DashboardStats } from '../../../../lib/types/enhanced-system';
 import { collection, query, orderBy, limit, getDocs, getCountFromServer, where, Timestamp } from 'firebase/firestore';
 
 // Utility: Safely convert Firestore Timestamp or Date to ISO string
@@ -25,15 +26,7 @@ function toIsoString(date: unknown): string {
 }
 
 
-/**
- * Dashboard statistics summary.
- */
-type DashboardStats = {
-  totalWorkers: number;
-  totalHouseholds: number;
-  jobsCompleted: number;
-  totalRevenue: number;
-};
+
 
 
 /**
@@ -82,6 +75,7 @@ type DashboardResponse = {
     workers: WorkerSummary[];
     jobs: JobSummary[];
   };
+  insuranceCompanies: { id: string; name: string }[];
 };
 
 
@@ -101,8 +95,11 @@ export async function GET() {
       getCountFromServer(query(collection(db, 'jobs'), where('status', '==', 'completed')))
     ]);
 
-    // --- Total revenue from completed payments ---
+    // --- Total revenue and tax breakdown from completed payments ---
     let totalRevenue = 0;
+    let totalVat = 0;
+    let totalInsurance = 0;
+    let totalPlatformFee = 0;
     try {
       const paymentsQuery = query(
         collection(db, 'servicePayments'),
@@ -111,6 +108,9 @@ export async function GET() {
       const paymentsSnap = await getDocs(paymentsQuery);
       totalRevenue = paymentsSnap.docs.reduce((sum, doc) => {
         const amount = Number(doc.data().amount);
+        totalVat += Number(doc.data().tax || doc.data().vat || 0);
+        totalInsurance += Number(doc.data().insurance || 0);
+        totalPlatformFee += Number(doc.data().platformFee || 0);
         return sum + (isNaN(amount) ? 0 : amount);
       }, 0);
     } catch {
@@ -134,6 +134,7 @@ export async function GET() {
         services: Array.isArray(data.services) ? data.services : [],
         status: data.status || 'pending',
         createdAt: toIsoString(data.createdAt),
+        insuranceCompany: data.insuranceCompany || null,
       };
     });
 
@@ -179,6 +180,9 @@ export async function GET() {
         totalHouseholds: householdsSnap.data().count ?? 0,
         jobsCompleted: completedJobsSnap.data().count ?? 0,
         totalRevenue,
+        totalVat,
+        totalInsurance,
+        totalPlatformFee,
       },
       activity: {
         newWorkersThisMonth: newWorkersThisMonth.data().count ?? 0,
@@ -187,7 +191,15 @@ export async function GET() {
       recentData: {
         workers: recentWorkers,
         jobs: recentJobs,
-      }
+      },
+      insuranceCompanies: [
+        { id: 'sonarwa', name: 'SONARWA' },
+        { id: 'radiant', name: 'RADIANT' },
+        { id: 'sanlam', name: 'SANLAM' },
+        { id: 'prime', name: 'PRIME' },
+        { id: 'corar', name: 'CORAR' },
+        { id: 'inyangamugayo', name: 'INYANGAMUGAYO' },
+      ],
     };
 
     // --- Return JSON response (add cache header for 30s if desired) ---

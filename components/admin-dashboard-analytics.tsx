@@ -25,6 +25,17 @@ interface AdminDashboardAnalyticsProps {
 export function AdminDashboardAnalytics({ dateRange, onDateRangeChange }: AdminDashboardAnalyticsProps) {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [taxStats, setTaxStats] = useState<{ vat: number; insurance: number; platformFee: number } | null>(null);
+  const [insuranceCompanies, setInsuranceCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [recentWorkers, setRecentWorkers] = useState<{
+    id: string;
+    fullName: string;
+    email: string;
+    services: string[];
+    status: string;
+    createdAt: string;
+    insuranceCompany: string | null;
+  }[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -33,6 +44,13 @@ export function AdminDashboardAnalytics({ dateRange, onDateRangeChange }: AdminD
       .then(data => {
         if (data.success && data.data) {
           setAnalytics(data.data);
+          setTaxStats({
+            vat: data.data.stats.totalVat,
+            insurance: data.data.stats.totalInsurance,
+            platformFee: data.data.stats.totalPlatformFee,
+          });
+          setInsuranceCompanies(data.data.insuranceCompanies || []);
+          setRecentWorkers(data.data.recentData.workers || []);
         } else {
           setAnalytics(null);
         }
@@ -95,6 +113,70 @@ export function AdminDashboardAnalytics({ dateRange, onDateRangeChange }: AdminD
 
   return (
     <div className="space-y-6">
+      {/* Tax Fees Section */}
+      {taxStats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader><CardTitle>VAT Collected</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-700">{formatCurrency(taxStats.vat)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Insurance Fees</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-700">{formatCurrency(taxStats.insurance)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Platform Fees</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-700">{formatCurrency(taxStats.platformFee)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Insurance Companies Section */}
+      {insuranceCompanies.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader><CardTitle>Insurance Companies</CardTitle></CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6">
+              {insuranceCompanies.map((company) => (
+                <li key={company.id} className="mb-1 font-medium">{company.name}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Workers & Insurance Section */}
+      {recentWorkers.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader><CardTitle>Recent Workers & Insurance</CardTitle></CardHeader>
+          <CardContent>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left p-2">Name</th>
+                  <th className="text-left p-2">Email</th>
+                  <th className="text-left p-2">Insurance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentWorkers.map((worker) => (
+                  <tr key={worker.id}>
+                    <td className="p-2">{worker.fullName}</td>
+                    <td className="p-2">{worker.email}</td>
+                    <td className="p-2">{worker.insuranceCompany || <span className="text-gray-400">None</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Analytics Dashboard</h1>

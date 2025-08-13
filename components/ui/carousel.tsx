@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import styles from './carousel.module.css';
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -137,7 +138,11 @@ const Carousel = React.forwardRef<
         <div
           ref={ref}
           onKeyDownCapture={handleKeyDown}
-          className={cn("relative", className)}
+          className={cn(
+            "relative",
+            styles.carouselContainer,
+            className
+          )}
           role="region"
           aria-roledescription="carousel"
           {...props}

@@ -234,6 +234,16 @@ export interface WorkerSearchResult {
   responseTime: string;
 }
 
+export interface DashboardStats {
+  totalWorkers: number;
+  totalHouseholds: number;
+  jobsCompleted: number;
+  totalRevenue: number;
+  totalVat: number;
+  totalInsurance: number;
+  totalPlatformFee: number;
+}
+
 export interface DashboardAnalytics {
   overview: {
     totalUsers: number;

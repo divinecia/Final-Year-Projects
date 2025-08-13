@@ -1,0 +1,10 @@
+/* Carousel UI improvements for dashboard */
+.carouselContainer {
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.04);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  transition: box-shadow 0.3s, padding 0.3s;
+  z-index: 1;
+}
