@@ -1,3 +1,16 @@
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  GithubAuthProvider,
+  GoogleAuthProvider,
+  signInWithPopup,
+  type Auth,
+} from 'firebase/auth';
+import { app, db } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
 // Sends a password reset email using Firebase Auth
 export async function sendPasswordResetEmail(email: string, userType: UserType): Promise<void> {
   const auth = await getFirebaseAuth();
@@ -13,17 +26,6 @@ export async function sendPasswordResetEmail(email: string, userType: UserType):
     throw new Error(errorMessage);
   }
 }
-
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  GithubAuthProvider,
-  GoogleAuthProvider,
-  signInWithPopup,
-  type Auth,
-} from 'firebase/auth';
 export async function signInWithGoogle(
   userType: UserType
 ): Promise<{ success: boolean; isNewUser?: boolean; user?: import('firebase/auth').User; error?: string }> {
@@ -42,8 +44,6 @@ export async function signInWithGoogle(
     return { success: false, error: errorMessage };
   }
 }
-import { app, db } from './firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function getFirebaseAuth(): Promise<Auth> {
   return getAuth(app);

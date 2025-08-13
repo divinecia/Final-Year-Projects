@@ -27,7 +27,21 @@ export function AdminDashboardAnalytics({ dateRange, onDateRangeChange }: AdminD
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAnalytics();
+    setLoading(true);
+    fetch(`/api/admin/dashboard?range=${dateRange}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setAnalytics(data.data);
+        } else {
+          setAnalytics(null);
+        }
+      })
+      .catch(err => {
+        setAnalytics(null);
+        console.error('Error loading analytics:', err);
+      })
+      .finally(() => setLoading(false));
   }, [dateRange]);
 
   useEffect(() => {
@@ -48,89 +62,6 @@ export function AdminDashboardAnalytics({ dateRange, onDateRangeChange }: AdminD
       }
     });
   }, [analytics]);
-
-  const loadAnalytics = async () => {
-    setLoading(true);
-    try {
-      // This would fetch real analytics data from Firestore
-      const mockAnalytics: DashboardAnalytics = {
-        overview: {
-          totalUsers: 15847,
-          totalWorkers: 8923,
-          totalHouseholds: 6924,
-          totalJobs: 45672,
-          totalRevenue: 125000000, // RWF
-          monthlyGrowth: 18.5
-        },
-        visitors: {
-          daily: [120, 135, 98, 145, 167, 189, 203, 178, 156, 134, 189, 234, 201, 178],
-          weekly: [980, 1120, 1340, 1567, 1234, 1456, 1678],
-          monthly: [4500, 5200, 6100, 7200, 6800, 7500, 8200, 8900, 9200, 8700, 9800, 10500],
-          sources: [
-            { source: 'Organic Search', visitors: 45, percentage: 45 },
-            { source: 'Social Media', visitors: 25, percentage: 25 },
-            { source: 'Direct', visitors: 20, percentage: 20 },
-            { source: 'Referrals', visitors: 10, percentage: 10 }
-          ]
-        },
-        satisfaction: {
-          averageRating: 4.6,
-          totalReviews: 3247,
-          ratingDistribution: {
-            five: 2100,
-            four: 890,
-            three: 167,
-            two: 56,
-            one: 34
-          },
-          satisfiedClients: 2990,
-          satisfactionTrend: [4.2, 4.3, 4.4, 4.5, 4.6, 4.6, 4.6]
-        },
-        financials: {
-          monthlyRevenue: [8500000, 9200000, 10100000, 11200000, 10800000, 12500000],
-          serviceRevenue: [
-            { serviceType: 'House Cleaning', revenue: 45000000, bookings: 1250, averagePrice: 36000 },
-            { serviceType: 'Babysitting', revenue: 32000000, bookings: 890, averagePrice: 36000 },
-            { serviceType: 'Cooking', revenue: 28000000, bookings: 780, averagePrice: 36000 },
-            { serviceType: 'Laundry', revenue: 15000000, bookings: 650, averagePrice: 23000 },
-            { serviceType: 'Gardening', revenue: 5000000, bookings: 180, averagePrice: 28000 }
-          ],
-          trainingRevenue: 15000000,
-          subscriptionRevenue: 8500000,
-          expenses: 89000000,
-          profit: 36500000
-        },
-        services: {
-          mostRequested: [
-            { serviceType: 'House Cleaning', requests: 1250, completionRate: 96, averageRating: 4.7 },
-            { serviceType: 'Babysitting', requests: 890, completionRate: 98, averageRating: 4.8 },
-            { serviceType: 'Cooking', requests: 780, completionRate: 94, averageRating: 4.6 },
-            { serviceType: 'Laundry', requests: 650, completionRate: 97, averageRating: 4.5 },
-            { serviceType: 'Gardening', requests: 180, completionRate: 92, averageRating: 4.4 }
-          ],
-          serviceGrowth: [
-            { serviceType: 'House Cleaning', growthPercentage: 15, previousPeriod: 1087, currentPeriod: 1250 },
-            { serviceType: 'Babysitting', growthPercentage: 22, previousPeriod: 729, currentPeriod: 890 },
-            { serviceType: 'Cooking', growthPercentage: 8, previousPeriod: 722, currentPeriod: 780 },
-            { serviceType: 'Laundry', growthPercentage: -5, previousPeriod: 684, currentPeriod: 650 }
-          ],
-          serviceRatings: [
-            { serviceType: 'Babysitting', averageRating: 4.8, totalReviews: 234 },
-            { serviceType: 'House Cleaning', averageRating: 4.7, totalReviews: 567 },
-            { serviceType: 'Cooking', averageRating: 4.6, totalReviews: 345 },
-            { serviceType: 'Laundry', averageRating: 4.5, totalReviews: 234 },
-            { serviceType: 'Gardening', averageRating: 4.4, totalReviews: 89 }
-          ]
-        }
-      };
-
-      setAnalytics(mockAnalytics);
-    } catch (error) {
-      console.error('Error loading analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-RW', {

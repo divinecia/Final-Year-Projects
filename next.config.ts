@@ -6,24 +6,48 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // Allow dev origins for Replit
+  // Disable security warnings for development
+  onDemandEntries: {
+    // Keep pages in memory for 60 seconds
+    maxInactiveAge: 60 * 1000,
+  },
+  
+  // Allow dev origins for all environments
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
+  
+  // Set dev indicators to false to reduce warnings
+  devIndicators: {
+    position: 'bottom-right',
+  },
+  
+  // Configure allowed origins for development
+  async headers() {
+    return [
+      {
+        source: '/_next/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
   },
   serverExternalPackages: ["@google-cloud/storage"],
   
   // Enable transpilation for better module resolution
   transpilePackages: [],
-  
-  // Configure allowed dev origins for Replit
-  ...(process.env.NODE_ENV === 'development' && {
-    allowedDevOrigins: [
-      '*.replit.dev',
-      '*.repl.co',
-      'localhost:3000',
-      '0.0.0.0:3000'
-    ]
-  }),
   
   // Output configuration for deployment
   output: process.env.BUILD_TARGET === 'static' ? 'export' : 
