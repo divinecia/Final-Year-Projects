@@ -17,28 +17,42 @@ import {
   type TrainingProgram,
   type TrainingRequest 
 } from "./actions";
+import { checkFirebaseConnection } from "@/lib/firebase";
 
 export default function AdminTrainingPage() {
   const [trainings, setTrainings] = useState<TrainingProgram[]>([]);
   const [trainingRequests, setTrainingRequests] = useState<TrainingRequest[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
+    setConnectionError(null);
     try {
+      const connected = await checkFirebaseConnection();
+      if (!connected) {
+        setConnectionError("Could not connect to Firestore. Please check your Firebase configuration and network.");
+        setTrainings([]);
+        setTrainingRequests([]);
+        return;
+      }
       const [trainingsData, requestsData] = await Promise.all([
         getTrainings(),
         getTrainingRequests()
       ]);
       setTrainings(trainingsData);
       setTrainingRequests(requestsData);
-    } catch {
+    } catch (err: unknown) {
+      const errorMessage = typeof err === "object" && err !== null && "message" in err
+        ? (err as { message?: string }).message
+        : "Failed to load training data.";
+      setConnectionError(errorMessage || "Failed to load training data.");
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load training data."
+        description: errorMessage || "Failed to load training data."
       });
     } finally {
       setLoading(false);
@@ -110,9 +124,20 @@ export default function AdminTrainingPage() {
     }
   };
 
+
   if (loading) {
     return (
       <div className="space-y-6">
+        <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+        <div className="h-64 bg-muted animate-pulse rounded" />
+      </div>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <div className="space-y-6">
+        <div className="text-red-600 font-bold">{connectionError}</div>
         <div className="h-8 w-64 bg-muted animate-pulse rounded" />
         <div className="h-64 bg-muted animate-pulse rounded" />
       </div>

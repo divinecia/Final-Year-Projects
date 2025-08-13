@@ -10,14 +10,11 @@ export async function getTopRatedWorkers(): Promise<Worker[]> {
   try {
     const q = query(
       workersCollection,
-      where('accountStatus.isActive', '==', true),
-      orderBy('performance.averageRating', 'desc'),
+      where('status', '==', 'active'),
+      orderBy('rating', 'desc'),
       limit(3)
     );
     const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) return [];
-
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -32,32 +29,7 @@ export async function getTopRatedWorkers(): Promise<Worker[]> {
     });
   } catch (error) {
     console.error("Error fetching top rated workers: ", error);
-    // Fallback to old structure if new structure fails
-    try {
-      const q = query(
-        workersCollection,
-        where('status', '==', 'active'),
-        orderBy('rating', 'desc'),
-        limit(3)
-      );
-      const querySnapshot = await getDocs(q);
-
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          fullName: data.fullName ?? 'No Name',
-          profilePictureUrl: data.profilePictureUrl ?? undefined,
-          rating: data.rating ?? 0,
-          reviewsCount: data.reviewsCount ?? 0,
-          skills: data.skills ?? [],
-          status: data.status,
-        } as Worker;
-      });
-    } catch (fallbackError) {
-      console.error("Error with fallback query: ", fallbackError);
-      return [];
-    }
+    return [];
   }
 }
 
@@ -92,7 +64,8 @@ export async function getUpcomingBooking(householdId: string): Promise<Booking |
       createdAt: jobDate?.toLocaleDateString() ?? '',
       jobDate: jobDate?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) ?? 'N/A',
       jobTime: jobDate?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A',
-      workerProfilePictureUrl: await getWorkerProfilePicture(data.workerId)
+      workerProfilePictureUrl: await getWorkerProfilePicture(data.workerId),
+      householdId: data.householdId ?? householdId,
     };
   } catch (error) {
     console.error("Error fetching upcoming booking: ", error);

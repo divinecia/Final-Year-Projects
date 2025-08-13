@@ -8,7 +8,7 @@ import { Users, Wallet, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getDashboardStats, getRecentWorkerRegistrations, getRecentJobPostings, type DashboardStats } from "./actions";
+import { getDashboardStats, getRecentWorkerRegistrations, getRecentJobPostings, getInsuranceStats, getTaxStats, type DashboardStats, type InsuranceStats, type TaxStats } from "./actions";
 import type { Worker } from "../workers/workermanage/actions";
 import type { Job } from "../jobs/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -66,8 +66,11 @@ function formatDate(dateString: string) {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default function AdminDashboardPage() {
+// Main Dashboard Page Component
+export default function DashboardPage() {
   const [stats, setStats] = React.useState<DashboardStats | null>(null);
+  const [insuranceStats, setInsuranceStats] = React.useState<InsuranceStats | null>(null);
+  const [taxStats, setTaxStats] = React.useState<TaxStats | null>(null);
   const [recentWorkers, setRecentWorkers] = React.useState<Worker[]>([]);
   const [recentJobs, setRecentJobs] = React.useState<Job[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -84,13 +87,17 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [statsData, workersData, jobsData] = await Promise.all([
+        const [statsData, insuranceData, taxData, workersData, jobsData] = await Promise.all([
           getDashboardStats(),
+          getInsuranceStats(),
+          getTaxStats(),
           getRecentWorkerRegistrations(),
           getRecentJobPostings(),
         ]);
         if (isMounted) {
           setStats(statsData);
+          setInsuranceStats(insuranceData);
+          setTaxStats(taxData);
           setRecentWorkers(workersData);
           setRecentJobs(jobsData);
         }
@@ -151,6 +158,20 @@ export default function AdminDashboardPage() {
           value={formatCurrency(stats?.totalRevenue ?? 0)}
           loading={loading}
           helper={"Based on completed jobs"}
+        />
+        <StatCard
+          title="Insurance Companies"
+          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          value={insuranceStats?.totalCompanies ?? 0}
+          loading={loading}
+          helper={insuranceStats?.topCompany ? `Top: ${insuranceStats.topCompany}` : undefined}
+        />
+        <StatCard
+          title="Tax Fees"
+          icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+          value={formatCurrency(taxStats?.totalTax ?? 0)}
+          loading={loading}
+          helper={taxStats?.lastMonthTax ? `Last month: ${formatCurrency(taxStats.lastMonthTax)}` : undefined}
         />
       </div>
 

@@ -1,4 +1,7 @@
+
 "use client"
+
+import * as React from "react";
 
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -29,12 +32,27 @@ export default function ResetPasswordPage() {
     },
   });
 
-  const onSubmit = () => {
-    toast({
-      title: "Password Updated",
-      description: "Your password has been changed successfully.",
-    });
-    router.push("/worker/login");
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const onSubmit = async () => {
+    setIsLoading(true);
+    try {
+      // TODO: Replace with actual password update logic (API/Firebase call)
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully.",
+      });
+      router.push("/worker/login");
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChooseMethod = (method: "phone" | "email") => {
@@ -84,7 +102,9 @@ export default function ResetPasswordPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">Reset Password</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Resetting..." : "Reset Password"}
+                </Button>
               </form>
             </Form>
           </CardContent>

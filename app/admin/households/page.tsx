@@ -11,6 +11,28 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { getHouseholds, deleteHousehold, type Household } from "./actions"
+
+// Modal for viewing household details
+function HouseholdDetailsModal({ household, open, onClose }: { household: Household | null, open: boolean, onClose: () => void }) {
+  if (!household || !open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-2">Household Details</h2>
+        <div className="space-y-2">
+          <div><strong>Full Name:</strong> {household.fullName}</div>
+          <div><strong>Email:</strong> {household.email}</div>
+          <div><strong>Phone:</strong> {household.phone}</div>
+          <div><strong>Status:</strong> <StatusBadge statusId={household.status} type="user" /></div>
+          <div><strong>Date Joined:</strong> {formatDate(household.dateJoined)}</div>
+        </div>
+        <div className="mt-4 text-right">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 import { StatusBadge } from "@/components/ui/status-components"
 
 const SkeletonRow = React.memo(() => (
@@ -59,6 +81,11 @@ export default function AdminHouseholdsPage() {
     const [filteredHouseholds, setFilteredHouseholds] = React.useState<Household[]>([])
     const [loading, setLoading] = React.useState(true)
     const [searchTerm, setSearchTerm] = React.useState("")
+    const [statusFilter, setStatusFilter] = React.useState<string>("all")
+    const [detailsModalOpen, setDetailsModalOpen] = React.useState(false)
+    const [selectedHousehold, setSelectedHousehold] = React.useState<Household | null>(null)
+    const [currentPage, setCurrentPage] = React.useState(1)
+    const pageSize = 10;
     const { toast } = useToast()
 
     // Debounce search input
@@ -90,12 +117,16 @@ export default function AdminHouseholdsPage() {
     }, [fetchHouseholds])
 
     React.useEffect(() => {
-        const results = households.filter(h =>
+        let results = households.filter(h =>
             h.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
             h.email.toLowerCase().includes(debouncedSearch.toLowerCase())
-        )
-        setFilteredHouseholds(results)
-    }, [debouncedSearch, households])
+        );
+        if (statusFilter !== "all") {
+            results = results.filter(h => h.status === statusFilter);
+        }
+        setFilteredHouseholds(results);
+        setCurrentPage(1);
+    }, [debouncedSearch, households, statusFilter])
 
     const handleDelete = async (householdId: string, householdName: string) => {
         const result = await deleteHousehold(householdId)
@@ -113,6 +144,10 @@ export default function AdminHouseholdsPage() {
             })
         }
     }
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredHouseholds.length / pageSize);
+    const paginatedHouseholds = filteredHouseholds.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     return (
         <div className="space-y-6">
@@ -136,17 +171,29 @@ export default function AdminHouseholdsPage() {
                             <CardTitle>Household Accounts</CardTitle>
                             <CardDescription>A list of all registered households in the system.</CardDescription>
                         </div>
-                        <div className="w-full max-w-sm">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search households..."
-                                    className="pl-8"
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    aria-label="Search households"
-                                />
+                        <div className="flex gap-2 items-center">
+                            <div className="w-full max-w-sm">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search households..."
+                                        className="pl-8"
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        aria-label="Search households"
+                                    />
+                                </div>
                             </div>
+                            <select
+                                className="border rounded px-2 py-1 text-sm"
+                                value={statusFilter}
+                                onChange={e => setStatusFilter(e.target.value)}
+                                aria-label="Filter by status"
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
                         </div>
                     </div>
                 </CardHeader>
@@ -165,8 +212,8 @@ export default function AdminHouseholdsPage() {
                         <TableBody>
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                            ) : filteredHouseholds.length > 0 ? (
-                                filteredHouseholds.map((household) => (
+                            ) : paginatedHouseholds.length > 0 ? (
+                                paginatedHouseholds.map((household) => (
                                     <TableRow key={household.id}>
                                         <TableCell className="font-medium">{household.fullName}</TableCell>
                                         <TableCell>{household.email}</TableCell>
@@ -183,7 +230,7 @@ export default function AdminHouseholdsPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => { setSelectedHousehold(household); setDetailsModalOpen(true); }}>
                                                             <Eye className="mr-2 h-4 w-4" /> View Details
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
@@ -221,8 +268,22 @@ export default function AdminHouseholdsPage() {
                             )}
                         </TableBody>
                     </Table>
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-end items-center gap-2 mt-4">
+                            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>
+                                Previous
+                            </Button>
+                            <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)}>
+                                Next
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
+            {/* Household Details Modal */}
+            <HouseholdDetailsModal household={selectedHousehold} open={detailsModalOpen} onClose={() => setDetailsModalOpen(false)} />
         </div>
     )
 }

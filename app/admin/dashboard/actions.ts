@@ -1,4 +1,105 @@
-'use server';
+// Types for insurance and tax stats
+export type InsuranceStats = {
+  totalCompanies: number;
+  topCompany?: string;
+};
+
+export type TaxStats = {
+  totalTax: number;
+  lastMonthTax?: number;
+};
+
+/**
+ * Fetches insurance stats for dashboard.
+ */
+export async function getInsuranceStats(): Promise<InsuranceStats> {
+  // Example: count insurance companies and get top company by coverage
+  const companies = await getInsuranceCompanies();
+  let topCompany = '';
+  if (companies.length > 0) {
+    // For demo, pick the company with most coverage options
+    topCompany = companies.reduce((prev, curr) =>
+      (curr.coverage.length > prev.coverage.length ? curr : prev)
+    ).name;
+  }
+  return {
+    totalCompanies: companies.length,
+    topCompany,
+  };
+}
+
+/**
+ * Fetches tax stats for dashboard.
+ */
+export async function getTaxStats(): Promise<TaxStats> {
+  // Example: sum tax from servicePayments (completed only)
+  let totalTax = 0;
+  let lastMonthTax = 0;
+  try {
+    const paymentsQuery = query(
+      collection(db, 'servicePayments'),
+      where('status', '==', 'completed')
+    );
+    const paymentsSnap = await getDocs(paymentsQuery);
+    const now = new Date();
+    paymentsSnap.docs.forEach(doc => {
+      const data = doc.data();
+      const tax = Number(data.tax) || 0;
+      totalTax += tax;
+      // Check if payment is from last month
+      if (data.createdAt) {
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt);
+        if (createdAt.getMonth() === now.getMonth() - 1 && createdAt.getFullYear() === now.getFullYear()) {
+          lastMonthTax += tax;
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching tax stats:', error);
+  }
+  return {
+    totalTax,
+    lastMonthTax,
+  };
+}
+// Type for insurance company
+export type InsuranceCompany = {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    website: string;
+    services: string[];
+    coverage: string[];
+};
+
+// Type for tax fees
+export type TaxFees = {
+    vat: number;
+    serviceFee: number;
+    other: number;
+};
+
+import { rwandanInsuranceCompanies } from '@/lib/rwanda-insurance';
+/**
+ * Fetches insurance companies for dashboard display.
+ * @returns {Promise<InsuranceCompany[]>} Array of insurance company objects
+ */
+export async function getInsuranceCompanies(): Promise<InsuranceCompany[]> {
+    return rwandanInsuranceCompanies as InsuranceCompany[];
+}
+
+/**
+ * Fetches tax fees (rates) for dashboard display.
+ * @returns {Promise<TaxFees>} Tax fee rates
+ */
+export async function getTaxFees(): Promise<TaxFees> {
+    return {
+        vat: 0.18, // 18% VAT
+        serviceFee: 0.05, // 5% platform service fee
+        other: 0.02 // 2% other fees
+    };
+}
 
 import { db } from '@/lib/firebase';
 import {
@@ -16,7 +117,11 @@ import {
 import type { Job } from '../jobs/actions';
 import type { Worker } from '../workers/workermanage/actions';
 
-// Helper to safely format Firestore Timestamp or Date
+/**
+ * Helper to safely format Firestore Timestamp or Date
+ * @param date Timestamp or Date or undefined
+ * @returns {string} Formatted date string or empty string
+ */
 function formatDate(date: Timestamp | Date | undefined): string {
     if (!date) return '';
     if (date instanceof Timestamp) {
@@ -80,6 +185,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 /**
  * Helper to safely map Firestore worker document to Worker type.
+ * @param doc Firestore document snapshot
+ * @returns {Worker} Worker object
  */
 function mapWorkerDoc(doc: QueryDocumentSnapshot<DocumentData>): Worker {
     const data = doc.data();
@@ -116,6 +223,8 @@ export async function getRecentWorkerRegistrations(): Promise<Worker[]> {
 
 /**
  * Helper to safely map Firestore job document to Job type.
+ * @param doc Firestore document snapshot
+ * @returns {Job} Job object
  */
 function mapJobDoc(doc: QueryDocumentSnapshot<DocumentData>): Job {
     const data = doc.data();

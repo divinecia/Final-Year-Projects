@@ -1,8 +1,27 @@
-'use server';
-
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+
+/**
+ * Update a worker's details (not just status).
+ */
+export async function updateWorker(
+  workerId: string,
+  updates: Partial<WorkerDoc>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workerRef = doc(db, 'workers', workerId);
+    await updateDoc(workerRef, updates);
+    // ...existing code...
+    return { success: true };
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "message" in error) {
+      console.error("Error updating worker:", (error as { message?: string }).message ?? error);
+    } else {
+      console.error("Error updating worker:", error);
+    }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
 
 // Firestore document data type
 type WorkerDoc = {
@@ -69,10 +88,7 @@ async function updateWorkerStatus(
     const workerRef = doc(db, 'workers', workerId);
     await updateDoc(workerRef, { status });
     
-    // Revalidate the workers page to show updated data
-    revalidatePath('/admin/workers');
-    revalidatePath('/admin/workers/workermanage');
-    revalidatePath('/admin/dashboard');
+    // ...existing code...
     
     return { success: true };
   } catch (error: unknown) {
@@ -103,10 +119,7 @@ export async function deleteWorker(
     const workerRef = doc(db, 'workers', workerId);
     await deleteDoc(workerRef);
     
-    // Revalidate the workers page to show updated data
-    revalidatePath('/admin/workers');
-    revalidatePath('/admin/workers/workermanage');
-    revalidatePath('/admin/dashboard');
+    // ...existing code...
     
     return { success: true };
   } catch (error: unknown) {

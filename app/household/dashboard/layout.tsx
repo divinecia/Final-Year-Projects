@@ -114,7 +114,7 @@ function HouseholdSidebar() {
         <SidebarMenu>
           {sidebarMenu.map(({ href, icon: Icon, label }) => (
             <SidebarMenuItem key={href}>
-              <SidebarMenuButton asChild isActive={pathname.startsWith(href)}>
+               <SidebarMenuButton asChild isActive={typeof pathname === 'string' && pathname.startsWith(href)}>
                 <Link href={href}>
                   <Icon className="mr-2 h-5 w-5" />
                   {label}
@@ -129,7 +129,7 @@ function HouseholdSidebar() {
           <SidebarMenu>
             {settingsMenu.map(({ href, icon: Icon, label }) => (
               <SidebarMenuItem key={href}>
-                <SidebarMenuButton asChild isActive={pathname.startsWith(href)}>
+                 <SidebarMenuButton asChild isActive={typeof pathname === 'string' && pathname.startsWith(href)}>
                   <Link href={href}>
                     <Icon className="mr-2 h-5 w-5" />
                     {label}

@@ -1,8 +1,25 @@
-'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, Timestamp, doc, deleteDoc } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+import { collection, getDocs, query, orderBy, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+
+export async function updateHousehold(householdId: string, updates: Partial<HouseholdFirestore>): Promise<{ success: boolean; error?: string }> {
+  try {
+    const householdRef = doc(db, 'households', householdId);
+    await updateDoc(householdRef, updates);
+    // ...existing code...
+    return { success: true };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error updating household: ", error.message);
+      return { success: false, error: error.message };
+    } else {
+      console.error("Error updating household: ", error);
+      return { success: false, error: 'Failed to update household.' };
+    }
+  }
+}
+
+// ...existing code...
 
 export type Household = {
   id: string;
@@ -54,7 +71,7 @@ export async function getHouseholds(): Promise<Household[]> {
 export async function deleteHousehold(householdId: string): Promise<{ success: boolean; error?: string }> {
   try {
     await deleteDoc(doc(db, 'households', householdId));
-    revalidatePath('/admin/households');
+    // ...existing code...
     return { success: true };
   } catch (error: unknown) {
     if (error instanceof Error) {

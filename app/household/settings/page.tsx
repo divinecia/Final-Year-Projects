@@ -17,7 +17,7 @@ import { AlertTriangle } from "lucide-react"
 import { ReportIssueForm } from "./report-issue-form"
 import { useToast } from "@/hooks/use-toast"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { getHouseholdProfile, updateHouseholdProfile, HouseholdSettingsSchema, type HouseholdProfile } from "./actions"
+import { getHouseholdProfile, updateHouseholdProfile, HouseholdSettingsSchema, HouseholdProfile, changeHouseholdPassword, updateNotificationPreferences } from "./actions"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -27,6 +27,10 @@ export default function SettingsPage() {
     const [isReportFormOpen, setIsReportFormOpen] = React.useState(false);
     const [profile, setProfile] = React.useState<HouseholdProfile | null>(null);
     const [loading, setLoading] = React.useState(true);
+    const [emailNotifications, setEmailNotifications] = React.useState(true);
+    const [smsNotifications, setSmsNotifications] = React.useState(false);
+    const [currentPassword, setCurrentPassword] = React.useState("");
+    const [newPassword, setNewPassword] = React.useState("");
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof HouseholdSettingsSchema>>({
@@ -45,6 +49,12 @@ export default function SettingsPage() {
             if (profileData) {
                 setProfile(profileData);
                 form.reset(profileData);
+                // Load notification preferences if present
+                const prefs = (profileData as { notificationPrefs?: { email?: boolean; sms?: boolean } }).notificationPrefs;
+                if (prefs) {
+                    setEmailNotifications(prefs.email ?? true);
+                    setSmsNotifications(prefs.sms ?? false);
+                }
             } else {
                 toast({
                     variant: "destructive",
@@ -59,22 +69,48 @@ export default function SettingsPage() {
 
     async function onSubmit(values: z.infer<typeof HouseholdSettingsSchema>) {
         if (!profile?.id) return;
-        
         toast({ title: "Updating profile..." });
-        
         const result = await updateHouseholdProfile(profile.id, values);
-
         if (result.success) {
             toast({
                 title: "Profile Updated",
                 description: "Your changes have been saved successfully.",
             });
         } else {
-             toast({
+            toast({
                 variant: "destructive",
                 title: "Update Failed",
                 description: "Could not save your changes. Please try again.",
             });
+        }
+    }
+
+    async function handleChangePassword() {
+        if (!user || !newPassword) return;
+        toast({ title: "Changing password..." });
+        const result = await changeHouseholdPassword(user, newPassword);
+        if (result.success) {
+            toast({ title: "Password Changed", description: "Your password has been updated." });
+            setCurrentPassword("");
+            setNewPassword("");
+        } else {
+            toast({ variant: "destructive", title: "Change Failed", description: result.error || "Could not change password." });
+        }
+    }
+
+    async function handleNotificationChange(type: "email" | "sms", value: boolean) {
+        if (!profile?.id) return;
+        const prefs = {
+            email: type === "email" ? value : emailNotifications,
+            sms: type === "sms" ? value : smsNotifications,
+        };
+        const result = await updateNotificationPreferences(profile.id, prefs);
+        if (result.success) {
+            toast({ title: "Preferences Updated", description: `Your ${type} notification preference has been updated.` });
+            if (type === "email") setEmailNotifications(value);
+            if (type === "sms") setSmsNotifications(value);
+        } else {
+            toast({ variant: "destructive", title: "Update Failed", description: result.error || "Could not update preferences." });
         }
     }
     
@@ -156,13 +192,13 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="current-password">Current Password</Label>
-                        <Input id="current-password" type="password" />
+                        <Input id="current-password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
                     </div>
                     <div>
                         <Label htmlFor="new-password">New Password</Label>
-                        <Input id="new-password" type="password" />
+                        <Input id="new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                     </div>
-                    <Button>Change Password</Button>
+                    <Button type="button" onClick={handleChangePassword}>Change Password</Button>
                 </CardContent>
             </Card>
 
@@ -177,14 +213,14 @@ export default function SettingsPage() {
                            <Label htmlFor="email-notifications" className="font-semibold">Email Notifications</Label>
                             <p className="text-sm text-muted-foreground">Receive updates via email.</p>
                         </div>
-                        <Switch id="email-notifications" checked/>
+                        <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={v => handleNotificationChange("email", v)} />
                     </div>
                      <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                            <Label htmlFor="sms-notifications" className="font-semibold">SMS Notifications</Label>
                             <p className="text-sm text-muted-foreground">Receive updates via SMS.</p>
                         </div>
-                        <Switch id="sms-notifications" />
+                        <Switch id="sms-notifications" checked={smsNotifications} onCheckedChange={v => handleNotificationChange("sms", v)} />
                     </div>
                 </CardContent>
             </Card>

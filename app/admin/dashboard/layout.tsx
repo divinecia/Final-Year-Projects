@@ -54,17 +54,34 @@ const settingsItems: MenuItem[] = [
   { href: "/admin/settings", icon: <Settings style={{ color: "rgb(95, 108, 126)" }} />, label: "Settings", exact: true },
 ]
 
-const user = {
-  name: "Admin User",
-  email: "admin@househelp.app",
-  avatar: "https://placehold.co/100x100.png"
+import { db } from "../../../lib/firebase"
+import { collection, doc, getDoc } from "firebase/firestore"
+
+function useAdminUser() {
+  const [user, setUser] = React.useState<{ name: string; email: string; avatar?: string } | null>(null);
+  React.useEffect(() => {
+    // Example: fetch admin user from Firestore (adjust path as needed)
+    async function fetchUser() {
+      try {
+        const userDoc = await getDoc(doc(collection(db, "admin"), "current"));
+        if (userDoc.exists()) {
+          setUser(userDoc.data() as { name: string; email: string; avatar?: string });
+        } else {
+          setUser({ name: "Admin", email: "admin@househelp.rw" });
+        }
+      } catch {
+        setUser({ name: "Admin", email: "admin@househelp.rw" });
+      }
+    }
+    fetchUser();
+  }, []);
+  return user;
 }
 
-function getInitials(name: string) {
-  return name.split(" ").map(n => n[0]).join("").toUpperCase()
-}
+
 
 function AdminSidebar() {
+  const user = useAdminUser();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -86,7 +103,7 @@ function AdminSidebar() {
           isActive={
             item.exact
               ? pathname === item.href
-              : pathname.startsWith(item.href)
+              : typeof pathname === 'string' && pathname.startsWith(item.href) ? true : false
           }
           aria-label={item.label}
         >
@@ -127,16 +144,18 @@ function AdminSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-background/70">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-semibold">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
+        {user && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-background/70 mt-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.avatar || undefined} alt={user.name} />
+              <AvatarFallback>{user.name[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            </div>
           </div>
-        </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   )
@@ -149,7 +168,7 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen flex-row-reverse">
         <AdminSidebar />
         <main className="flex-1 p-4 md:p-6 lg:p-8 bg-muted/40">
           <div className="md:hidden mb-4">

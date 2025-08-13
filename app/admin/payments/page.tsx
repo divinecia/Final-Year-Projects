@@ -64,14 +64,13 @@ export default function AdminPaymentsPage() {
     // Filtered data based on search
     const filteredServicePayments = servicePayments.filter(p =>
         p.householdName.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-        p.workerName.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-        p.date.includes(serviceSearch)
+        p.workerName.toLowerCase().includes(serviceSearch.toLowerCase())
     );
 
+    // Filtered training payments based on search
     const filteredTrainingPayments = trainingPayments.filter(p =>
         p.workerName.toLowerCase().includes(trainingSearch.toLowerCase()) ||
-        p.courseTitle.toLowerCase().includes(trainingSearch.toLowerCase()) ||
-        p.date.includes(trainingSearch)
+        p.courseTitle.toLowerCase().includes(trainingSearch.toLowerCase())
     );
 
     return (
@@ -223,7 +222,7 @@ export default function AdminPaymentsPage() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={6} className="h-24 text-center">No training payments found.</TableCell>
+                                                <TableCell colSpan={6} className="h-24 text-center">No training payments found.<br /><span className="text-xs text-muted-foreground">If you expect payments, check Firestore for missing fields (date, createdAt, workerName, courseTitle, amount, status).</span></TableCell>
                                             </TableRow>
                                         )}
                                 </TableBody>
@@ -232,6 +231,7 @@ export default function AdminPaymentsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-        </div>
-    )
-}
+            </div>
+        )
+    }
+                                      

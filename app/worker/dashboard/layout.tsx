@@ -78,7 +78,7 @@ function WorkerSidebar() {
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+               <SidebarMenuButton asChild isActive={typeof pathname === 'string' && pathname.startsWith(item.href)}>
                 <Link href={item.href}>
                   {item.icon}
                   {item.label}
@@ -94,7 +94,7 @@ function WorkerSidebar() {
           <SidebarMenu>
             {settingsItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+                     <SidebarMenuButton asChild isActive={typeof pathname === 'string' && pathname.startsWith(item.href)}>
                         <Link href={item.href}>
                             {item.icon}
                             {item.label}

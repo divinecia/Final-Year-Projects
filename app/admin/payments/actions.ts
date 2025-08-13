@@ -63,16 +63,24 @@ export async function getServicePayments(): Promise<ServicePayment[]> {
 export async function getTrainingPayments(): Promise<TrainingPayment[]> {
   try {
     const paymentsCollection = collection(db, 'trainingPayments');
-    const q = query(paymentsCollection, orderBy('date', 'desc'));
+    // Try to order by 'date', fallback to 'createdAt' if needed
+    let q;
+    try {
+      q = query(paymentsCollection, orderBy('date', 'desc'));
+    } catch {
+      q = query(paymentsCollection, orderBy('createdAt', 'desc'));
+    }
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) return [];
 
     return querySnapshot.docs.map(doc => {
       const data = doc.data() as DocumentData;
+      // Fallback: use createdAt if date is missing
+      const date = data.date ?? data.createdAt;
       return {
         id: doc.id,
-        date: formatDate(data.date),
+        date: formatDate(date),
         workerName: data.workerName || 'N/A',
         courseTitle: data.courseTitle || 'N/A',
         amount: typeof data.amount === 'number' ? data.amount : 0,

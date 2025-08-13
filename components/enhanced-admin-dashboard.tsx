@@ -27,7 +27,7 @@ interface EnhancedAdminDashboardProps {
 
 export function EnhancedAdminDashboard({ adminId }: EnhancedAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [analyticsDateRange, setAnalyticsDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const [analyticsDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
 
   const tabItems = [
     {
@@ -290,7 +290,7 @@ export function EnhancedAdminDashboard({ adminId }: EnhancedAdminDashboardProps)
           <TabsContent value="analytics">
             <AdminDashboardAnalytics 
               dateRange={analyticsDateRange}
-              onDateRangeChange={setAnalyticsDateRange}
+              // onDateRangeChange={setAnalyticsDateRange} // Removed prop to match AdminDashboardAnalyticsProps
             />
           </TabsContent>
 

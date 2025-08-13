@@ -1,11 +1,43 @@
 
 'use server';
 
+// Change household password (Firebase Auth)
+import { updatePassword, User } from 'firebase/auth';
+
+export async function changeHouseholdPassword(user: User, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  if (!user || !newPassword) {
+    return { success: false, error: 'Invalid user or password.' };
+  }
+  try {
+    await updatePassword(user, newPassword);
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to change password.';
+    return { success: false, error: errorMessage };
+  }
+}
+
+
+// Update notification preferences
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import * as z from 'zod';
 import { revalidatePath } from 'next/cache';
 
+export async function updateNotificationPreferences(householdId: string, prefs: { email: boolean; sms: boolean }): Promise<{ success: boolean; error?: string }> {
+  if (!householdId) {
+    return { success: false, error: 'Invalid household ID.' };
+  }
+  try {
+    const householdRef = doc(db, 'households', householdId);
+    await updateDoc(householdRef, { notificationPrefs: prefs });
+    revalidatePath('/household/settings');
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update notification preferences.';
+    return { success: false, error: errorMessage };
+  }
+}
 
 export const HouseholdSettingsSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters."),

@@ -27,8 +27,8 @@ const formSchema = z.object({
 export default function VerifyPasswordResetPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const contact = searchParams.get('contact');
-  const verificationId = searchParams.get('verificationId'); // Get verificationId from URL
+  const contact = searchParams ? searchParams.get('contact') : null;
+  const verificationId = searchParams ? searchParams.get('verificationId') : null; // Get verificationId from URL
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -41,23 +41,31 @@ export default function VerifyPasswordResetPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!contact || !verificationId) {
-        toast({ variant: "destructive", title: "Error", description: "Missing verification details." });
-        return;
+      toast({ variant: "destructive", title: "Error", description: "Missing verification details." });
+      return;
     }
-    
+
     toast({ title: "Verifying code..." });
 
-    const result = await verifyPasswordResetCode(verificationId, values.code);
+    try {
+      const result = await verifyPasswordResetCode(verificationId, values.code);
 
-    if (result.success) {
+      if (result.success) {
         toast({ title: "Success!", description: "Verification successful." });
         router.push(`/forgot-password/reset?contact=${encodeURIComponent(contact)}`);
-    } else {
+      } else {
         toast({
-            variant: "destructive",
-            title: "Verification Failed",
-            description: result.error || "The code is incorrect. Please try again."
+          variant: "destructive",
+          title: "Verification Failed",
+          description: result.error || "The code is incorrect. Please try again."
         });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Unexpected Error",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again."
+      });
     }
   }
 

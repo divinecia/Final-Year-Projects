@@ -149,6 +149,13 @@ export default function AdminJobsPage() {
                                 <TableHead>Household</TableHead>
                                 <TableHead className="hidden md:table-cell">Worker</TableHead>
                                 <TableHead className="hidden lg:table-cell">Service Type</TableHead>
+                                <TableHead>Package</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Duration</TableHead>
+                                <TableHead>Tax</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Created</TableHead>
+                                <TableHead>Completed</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead><span className="sr-only">Actions</span></TableHead>
                             </TableRow>
@@ -163,6 +170,13 @@ export default function AdminJobsPage() {
                                         <TableCell>{job.householdName}</TableCell>
                                         <TableCell className="hidden md:table-cell">{job.workerName || "Unassigned"}</TableCell>
                                         <TableCell className="hidden lg:table-cell">{getServiceName(job.serviceType)}</TableCell>
+                                        <TableCell>{job.servicePackage || '-'}</TableCell>
+                                        <TableCell>{typeof job.amount === 'number' ? job.amount : '-'}</TableCell>
+                                        <TableCell>{job.duration || '-'}</TableCell>
+                                        <TableCell>{typeof job.tax === 'number' ? job.tax : '-'}</TableCell>
+                                        <TableCell>{job.location || '-'}</TableCell>
+                                        <TableCell>{job.createdAt || '-'}</TableCell>
+                                        <TableCell>{job.completedAt || '-'}</TableCell>
                                         <TableCell><StatusBadge statusId={job.status} type="job" /></TableCell>
                                         <TableCell>
                                             <AlertDialog>
@@ -215,7 +229,7 @@ export default function AdminJobsPage() {
                                 ))
                         ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">No jobs found.</TableCell>
+                                    <TableCell colSpan={13} className="h-24 text-center">No jobs found.</TableCell>
                                 </TableRow>
                         )}
                         </TableBody>

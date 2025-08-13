@@ -20,10 +20,18 @@ export type Job = {
     id: string;
     jobTitle: string;
     householdName: string;
+    householdId: string;
     workerName?: string | null;
+    workerId?: string | null;
     serviceType: string;
+    servicePackage?: string;
+    amount?: number;
+    duration?: string;
+    tax?: number;
+    location?: string;
     status: 'pending' | 'open' | 'assigned' | 'completed' | 'cancelled';
     createdAt: string;
+    completedAt?: string;
 };
 
 type Notification = {
@@ -84,14 +92,23 @@ export async function getJobs(): Promise<Job[]> {
         return querySnapshot.docs.map(docSnap => {
             const data = docSnap.data();
             const createdAt = data.createdAt as Timestamp;
+            const completedAt = data.completedAt as Timestamp | undefined;
             return {
                 id: docSnap.id,
                 jobTitle: data.jobTitle || 'N/A',
                 householdName: data.householdName || 'N/A',
+                householdId: data.householdId || '',
                 workerName: data.workerName || null,
+                workerId: data.workerId || null,
                 serviceType: data.serviceType || 'N/A',
+                servicePackage: data.servicePackage || '',
+                amount: typeof data.amount === 'number' ? data.amount : undefined,
+                duration: data.duration || '',
+                tax: typeof data.tax === 'number' ? data.tax : undefined,
+                location: data.location || '',
                 status: data.status || 'open',
                 createdAt: createdAt?.toDate().toLocaleDateString() || '',
+                completedAt: completedAt ? completedAt.toDate().toLocaleDateString() : undefined,
             } as Job;
         });
     } catch (error) {
