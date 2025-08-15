@@ -1,6 +1,5 @@
 import React from 'react';
 import Image from 'next/image';
-import icon from '@/components/icons/icon.png';
 import clsx from 'clsx';
 
 type LogoProps = {
@@ -18,7 +17,7 @@ export function Logo({
 }: LogoProps) {
   return (
     <Image
-      src={icon}
+      src="/icons/icon.png" // Assuming the icon is in the public directory at /icons/icon.png
       alt={alt}
       width={size}
       height={size}
