@@ -22,27 +22,31 @@ const nextConfig: NextConfig = {
     position: 'bottom-right',
   },
   
-  // Configure allowed origins for development
+  // Configure allowed origins for development and security headers in server mode
   async headers() {
-    return [
+    const headers = [
       {
         source: '/_next/:path*',
         headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
     ];
+
+    if (!process.env.BUILD_TARGET) {
+      headers.push({
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+        ],
+      });
+    }
+
+    return headers as any;
   },
   serverExternalPackages: ["@google-cloud/storage"],
   
@@ -93,31 +97,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },  
-  
-  // Headers for security (only in server mode)
-  ...(!process.env.BUILD_TARGET && {
-    async headers() {
-      return [
-        {
-          source: '/(.*)',
-          headers: [
-            {
-              key: 'X-Content-Type-Options',
-              value: 'nosniff',
-            },
-            {
-              key: 'X-Frame-Options',
-              value: 'DENY',
-            },
-            {
-              key: 'X-XSS-Protection',
-              value: '1; mode=block',
-            },
-          ],
-        },
-      ];
-    },
-  }),
   
   // Webpack configuration for both warnings suppression and path resolution
   webpack: (config: import('webpack').Configuration, { isServer }: { isServer: boolean }) => {
