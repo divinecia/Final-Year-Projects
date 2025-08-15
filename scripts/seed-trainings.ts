@@ -4,14 +4,12 @@
  * Create worker training records and certifications
  */
 
-import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
+import * as admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    projectId: 'househelp-42493'
+    projectId: "househelp-42493",
   });
 }
 

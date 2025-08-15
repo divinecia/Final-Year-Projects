@@ -4,14 +4,12 @@
  * Create realistic household users to populate the platform
  */
 
-import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
+import * as admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    projectId: 'househelp-42493'
+    projectId: "househelp-42493",
   });
 }
 
@@ -176,7 +174,7 @@ async function createHouseholdUsers() {
 
       await householdDocRef.set(householdData, { merge: true });
       console.log(`✅ Household document created`);
-      
+
       console.log(`🎉 Household ready: ${household.firstName} ${household.lastName} (${household.location})\n`);
 
     } catch (error) {
@@ -185,7 +183,7 @@ async function createHouseholdUsers() {
   }
 
   console.log('📋 Household creation completed!\n');
-  
+
   // List all households
   console.log('🔍 All household users:');
   const householdSnapshot = await adminDb.collection('households').get();

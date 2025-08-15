@@ -37,6 +37,7 @@ export default function AdminWorkersManagePage() {
         try {
             setLoading(true);
             const fetchedWorkers = await getWorkers();
+            console.log("Fetched workers:", fetchedWorkers); // Added console log
             setWorkers(fetchedWorkers);
         } catch (error) {
             console.error(error);

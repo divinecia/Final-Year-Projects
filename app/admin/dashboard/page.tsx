@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, CheckCircle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"; // Keep Skeleton for loading states
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { getDashboardStats, getRecentWorkerRegistrations, getRecentJobPostings, getInsuranceStats, getTaxStats, type DashboardStats, type InsuranceStats, type TaxStats } from "./actions";
@@ -13,6 +13,7 @@ import type { Worker } from "../workers/workermanage/actions";
 import type { Job } from "../jobs/actions";
 import { useToast } from "@/hooks/use-toast";
 
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 // StatCard: Reusable card for dashboard stats
 type StatCardProps = {
   title: string;
@@ -116,6 +117,34 @@ export default function DashboardPage() {
     return () => { isMounted = false; };
   }, [toast]);
 
+  // Data transformation for charts
+  const jobLifecycleChartData = React.useMemo(() => {
+    if (!stats?.jobLifecycle) return [];
+    return Object.keys(stats.jobLifecycle).map(status => ({
+      name: status,
+      value: stats.jobLifecycle[status],
+    }));
+  }, [stats?.jobLifecycle]);
+
+  const serviceDemandChartData = React.useMemo(() => {
+    if (!stats?.serviceDemand) return [];
+    return Object.keys(stats.serviceDemand).map(serviceType => ({
+      name: serviceType,
+      count: stats.serviceDemand[serviceType],
+    }));
+  }, [stats?.serviceDemand]);
+  
+  const revenueByServiceChartData = React.useMemo(() => {
+    if (!stats?.revenueStreams?.revenueByService) return [];
+    return Object.keys(stats.revenueStreams.revenueByService).map(serviceType => ({
+      name: serviceType,
+      value: stats.revenueStreams.revenueByService[serviceType],
+    }));
+  }, [stats?.revenueStreams?.revenueByService]);
+
+  // Define colors for Pie Chart slices
+  const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28DFF'];
+
   // Memoized skeletons for performance
   const workerSkeletons = useSkeletonRows(WorkerSkeletonRow, 3);
   const jobSkeletons = useSkeletonRows(JobSkeletonRow, 3);
@@ -175,59 +204,114 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Worker Registrations */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Platform Growth Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Worker Registrations</CardTitle>
+            <CardTitle>Platform Growth (Last 12 Months)</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Date Joined</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading
-                  ? workerSkeletons
-                  : recentWorkers.length > 0
-                  ? recentWorkers.map(worker => (
-                      <TableRow key={worker.id}>
-                        <TableCell className="font-medium">{worker.fullName}</TableCell>
-                        <TableCell>{worker.email}</TableCell>
-                        <TableCell>{formatDate(worker.dateJoined)}</TableCell>
-                      </TableRow>
-                    ))
-                  : renderEmpty("No recent registrations.", 3)}
-              </TableBody>
-            </Table>
+          <CardContent className="h-80">
+            {loading || !stats?.platformGrowth ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.platformGrowth.adminGrowth}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#8884d8" name="Admins" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
-        {/* Recent Job Postings */}
+        {/* Job Status Distribution Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Job Postings</CardTitle>
+            <CardTitle>Job Status Distribution</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {loading
-                ? jobSkeletons
-                : recentJobs.length > 0
-                ? recentJobs.map(job => (
-                    <div key={job.id} className="flex justify-between items-center py-2">
-                      <div>
-                        <p className="font-medium">{job.jobTitle}</p>
-                        <p className="text-sm text-muted-foreground">{job.householdName}</p>
-                      </div>
-                      <Button variant="outline" size="sm" aria-label={`View job ${job.jobTitle}`}>View</Button>
-                    </div>
-                  ))
-                : <div className="text-center text-muted-foreground py-10">No recent jobs.</div>}
-            </div>
+          <CardContent className="h-80 flex items-center justify-center">
+            {loading || jobLifecycleChartData.length === 0 ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={jobLifecycleChartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  >
+                    {jobLifecycleChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue by Service Type Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by Service Type</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80 flex items-center justify-center">
+            {loading || revenueByServiceChartData.length === 0 ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={revenueByServiceChartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  >
+                    {revenueByServiceChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+         {/* Service Demand Chart */}
+         <Card>
+          <CardHeader>
+            <CardTitle>Service Demand</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            {loading || serviceDemandChartData.length === 0 ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={serviceDemandChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#8884d8" name="Number of Jobs" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

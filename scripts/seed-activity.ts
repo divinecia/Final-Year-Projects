@@ -1,19 +1,14 @@
 #!/usr/bin/env tsx
 
 /**
- * Create realistic jobs, applications, and platform activity
+ * Debug system by checking basic Firebase connectivity and data counts.
  */
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    projectId: 'househelp-42493'
-  });
-}
+// Assuming Firebase Admin SDK is initialized elsewhere or using default credentials
+// If not, you might need to initialize it here. Example:
+// admin.initializeApp();
 
 const adminDb = admin.firestore();
 
@@ -226,13 +221,13 @@ async function createJobsAndActivity() {
   const jobsCount = await adminDb.collection('jobs').get();
   const applicationsCount = await adminDb.collection('applications').get();
   const notificationsCount = await adminDb.collection('notifications').get();
-  
+
   console.log(`  - Jobs: ${jobsCount.size}`);
-  console.log(`  - Applications: ${applicationsCount.size}`);
+  console.log(`  - Applications: ${applicationsCount.size}`); // Assuming 'applications' collection exists
   console.log(`  - Notifications: ${notificationsCount.size}`);
   console.log(`  - Households: ${households.length}`);
   console.log(`  - Workers: ${workers.length}`);
-  
+
   console.log('\n🎉 Realistic platform activity created successfully!');
 }
 

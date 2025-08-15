@@ -1,14 +1,10 @@
 import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
 
 async function generateSystemSummary() {
   try {
     // Initialize Firebase if not already done
     if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-        projectId: 'househelp-42493'
-      });
+ admin.initializeApp();
     }
 
     const db = admin.firestore();

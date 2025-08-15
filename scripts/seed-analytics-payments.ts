@@ -5,7 +5,6 @@
  */
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '../config/househelp-42493-firebase-adminsdk-fbsvc-4126e55eb7.json';
 
 // Type definitions
 interface Job {
@@ -28,8 +27,10 @@ interface Household {
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
+  // Note: When running locally, ensure you have the Firebase Admin SDK
+  // service account key file configured either via environment variable
+  // GOOGLE_APPLICATION_CREDENTIALS or by placing it in the default location.
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
     projectId: 'househelp-42493'
   });
 }

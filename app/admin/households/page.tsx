@@ -100,6 +100,7 @@ export default function AdminHouseholdsPage() {
         try {
             const fetchedHouseholds = await getHouseholds()
             setHouseholds(fetchedHouseholds)
+            console.log("Fetched households:", fetchedHouseholds); // Added console log
             setFilteredHouseholds(fetchedHouseholds)
         } catch {
             toast({
